@@ -89,8 +89,8 @@ export default function App() {
       <span>BLACK HOLE DATA SERVICES</span>
       <span className="top-right">Kenya</span>
     </div>
-    <header className="header" style={{padding:"5px 0",minHeight:0}}>
-      <a className="brand" href="#home"><span>BLACK HOLE<small>DATA SERVICES</small></span></a>
+    <header className="header" style={{padding:"10px 0 12px",minHeight:0,display:"block"}}>
+      <a className="brand" href="#home" style={{display:"block",width:"100%",textDecoration:"none"}}><span style={{display:"block",fontSize:"clamp(1.8rem,8vw,2.5rem)",fontWeight:900,letterSpacing:"-1.2px",lineHeight:1.05}}>BLACKHOLE<small style={{display:"block",fontSize:"clamp(1rem,4.5vw,1.35rem)",fontWeight:850,letterSpacing:"2.5px",lineHeight:1.25,marginTop:3}}>DATA SERVICES</small></span></a>
       <nav style={{display:"none"}}><a href="#offers">Packages</a></nav>
       
     </header>
@@ -106,15 +106,15 @@ export default function App() {
         <div className="hero-art"><div className="sun-shape"/><div className="art-card art-card-one"><span>STAY CONNECTED</span><strong>Good bundles.<br/>Clear prices.</strong><div className="art-emoji">📱</div></div><div className="art-card art-card-two"><div className="mini-emoji">📶</div><div><strong>Data & more</strong><small>Choose what suits you</small></div><span className="sparkle">✳</span></div><div className="floating-stamp">BINGWA<br/>SMART</div><div className="hero-plant">✳</div></div>
       </section>
       <section className="trust-strip" style={{display:"none"}}><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>M-PESA checkout</span></div></section>
-      <section className="offers-section" id="offers" style={{paddingTop:4}}>
-        <div className="section-heading" style={{marginBottom:5}}><div><h2 style={{margin:0,fontSize:"1.3rem",lineHeight:1.2}}>Packages</h2></div><span style={{fontSize:12,color:"#66736b"}}>{filtered.length} available</span></div>
-        <div className="hero-search catalog-search" style={{marginBottom:7,padding:8,minHeight:40}}><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
-        <div id="categories" className="categories" style={{marginBottom:8}}>{groups.map(item => <button key={item.key} className={group === item.key ? 'category active' : 'category'} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
+      <section className="offers-section" id="offers" style={{paddingTop:2}}>
+        
+        <div className="hero-search catalog-search" style={{marginBottom:5,padding:"5px 8px",minHeight:34}}><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
+        <div id="categories" className="categories" style={{marginBottom:5,gap:5}}>{groups.map(item => <button key={item.key} className={group === item.key ? 'category active' : 'category'} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
         {loading && <div className="empty-state">Loading live offers…</div>}
         {!loading && error && <div className="empty-state">{error} <button className="category active" onClick={() => void loadOffers()}>Retry</button></div>}
         {!loading && !error && <div className="deal-grid">{filtered.map((offer, index) => <article className="deal-card" key={offer.id} style={{minHeight:0,height:"auto",alignSelf:"start"}}>
           <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`} style={{height:0,minHeight:0,padding:0,display:"none"}}></div>
-          <div className="deal-details" style={{padding:10}}><h3 style={{margin:"0 0 3px",fontSize:15,lineHeight:1.25}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:4,fontSize:12,lineHeight:1.2}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"block",width:"100%",minHeight:34,padding:"7px 8px",background:"#111827",color:"#ffffff",border:"1px solid #111827",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",marginTop:6}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
+          <div className="deal-details" style={{padding:8}}><h3 style={{margin:"0 0 2px",fontSize:14,lineHeight:1.2}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:2,fontSize:11,lineHeight:1.15}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"block",width:"100%",minHeight:30,padding:"5px 6px",background:"#111827",color:"#ffffff",border:"1px solid #111827",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",marginTop:4}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
         </article>)}</div>}
         {!loading && !error && filtered.length === 0 && <div className="empty-state">No offers match your search. Try another word or category.</div>}
       </section>
