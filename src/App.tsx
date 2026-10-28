@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Clock3, Search, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Clock3, Search, ShieldCheck, Smartphone } from 'lucide-react';
 
 type Offer = {
   id: string;
