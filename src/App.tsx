@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, CheckCircle2, Clock3, Menu, Search, ShieldCheck, Smartphone } from 'lucide-react';
+import { Clock3, Search, ShieldCheck, Smartphone } from 'lucide-react';
 
 type Offer = {
   id: string;
@@ -23,12 +23,6 @@ const groupLabels: Record<string, string> = {
   repeatable: 'Repeatable Data',
   minutes: 'Minutes',
   sms: 'SMS',
-};
-const groupIcons: Record<string, string> = {
-  bingwa: '📶',
-  repeatable: '🔁',
-  minutes: '📞',
-  sms: '💬',
 };
 
 export default function App() {
@@ -91,15 +85,14 @@ export default function App() {
   }), [offers, group, search]);
 
   return <div className="app-shell">
-    <div className="topline">
-      <span><ShieldCheck size={14}/> BLACK HOLE DATA SERVICES</span>
-      <span className="top-right"><Smartphone size={14}/> Kenya</span>
+    <div className="topline" style={{padding:"5px 16px",minHeight:0,fontSize:11}}>
+      <span>BLACK HOLE DATA SERVICES</span>
+      <span className="top-right">Kenya</span>
     </div>
     <header className="header" style={{paddingTop:8,paddingBottom:8,minHeight:0}}>
-      <a className="brand" href="#home"><span className="brand-mark">B</span><span>BLACK HOLE<small>DATA SERVICES</small></span></a>
+      <a className="brand" href="#home"><span>BLACK HOLE<small>DATA SERVICES</small></span></a>
       <nav><a href="#offers">Packages</a></nav>
-      <button className="outline-btn" onClick={() => document.getElementById('offers')?.scrollIntoView({behavior:'smooth'})}><Smartphone size={17}/> Buy a bundle</button>
-      <button className="mobile-menu" aria-label="Menu" onClick={() => setNotice('Choose a category below to browse the available bundles.')}><Menu/></button>
+      
     </header>
     <main id="home">
       <section className="hero" style={{display:"none"}}>
@@ -113,21 +106,21 @@ export default function App() {
         <div className="hero-art"><div className="sun-shape"/><div className="art-card art-card-one"><span>STAY CONNECTED</span><strong>Good bundles.<br/>Clear prices.</strong><div className="art-emoji">📱</div></div><div className="art-card art-card-two"><div className="mini-emoji">📶</div><div><strong>Data & more</strong><small>Choose what suits you</small></div><span className="sparkle">✳</span></div><div className="floating-stamp">BINGWA<br/>SMART</div><div className="hero-plant">✳</div></div>
       </section>
       <section className="trust-strip" style={{display:"none"}}><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>M-PESA checkout</span></div></section>
-      <section className="offers-section" id="offers" style={{paddingTop:8}}>
-        <div className="section-heading" style={{marginBottom:8}}><div><h2 style={{marginTop:0,marginBottom:4,fontSize:"clamp(1.5rem,5vw,2.2rem)"}}>Packages<span>.</span></h2></div><a href="#categories" className="view-all" onClick={() => setGroup('all')}>All offers <ArrowUpRight size={17}/></a></div>
-        <div className="hero-search catalog-search" style={{marginBottom:8}}><Search size={18}/><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
+      <section className="offers-section" id="offers" style={{paddingTop:4}}>
+        <div className="section-heading" style={{marginBottom:8}}><div><h2 style={{margin:0,fontSize:"clamp(1.45rem,5vw,2rem)"}}>Packages</h2></div><span style={{fontSize:12,color:"#66736b"}}>{filtered.length} available</span></div>
+        <div className="hero-search catalog-search" style={{marginBottom:7,padding:8,minHeight:40}}><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
         <div id="categories" className="categories" style={{marginBottom:8}}>{groups.map(item => <button key={item.key} className={group === item.key ? 'category active' : 'category'} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
         {loading && <div className="empty-state">Loading live offers…</div>}
         {!loading && error && <div className="empty-state">{error} <button className="category active" onClick={() => void loadOffers()}>Retry</button></div>}
         {!loading && !error && <div className="deal-grid">{filtered.map((offer, index) => <article className="deal-card" key={offer.id}>
-          <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`} style={{height:92,minHeight:92}}><span className="deal-badge">{groupLabels[offer.group_key] ?? 'Bundle'}</span><span className="product-emoji">{groupIcons[offer.group_key] ?? '📱'}</span></div>
-          <div className="deal-details" style={{padding:9}}><h3>{offer.title}</h3><div className="deal-location"><Clock3 size={13}/>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong><small className="offer-note">{offer.note ?? groupLabels[offer.group_key]}</small></div></div><button className="outline-btn" style={{display:"block",width:"100%",minHeight:48,background:"#111827",color:"#ffffff",border:"2px solid #111827",borderRadius:10,fontWeight:700,fontSize:16,cursor:"pointer",marginTop:14,position:"relative",zIndex:2,visibility:"visible",opacity:1}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
+          <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`} style={{height:0,minHeight:0,padding:0,display:"none"}}></div>
+          <div className="deal-details" style={{padding:12}}><h3 style={{margin:"0 0 5px"}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:8}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"block",width:"100%",minHeight:42,background:"#111827",color:"#ffffff",border:"1px solid #111827",borderRadius:8,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:10}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
         </article>)}</div>}
         {!loading && !error && filtered.length === 0 && <div className="empty-state">No offers match your search. Try another word or category.</div>}
       </section>
       <section className="bottom-cta" id="how" style={{display:"none"}}><div><div className="eyebrow">SIMPLE AND TRANSPARENT</div><h2>Pick the bundle you need.</h2><p>Review the price and validity before checkout. Choose an offer and enter your M-PESA number to request a payment prompt.</p></div><button onClick={() => {setGroup('all');setSearch('');document.getElementById('offers')?.scrollIntoView({behavior:'smooth'});}}>Browse all offers <ArrowUpRight size={17}/></button></section>
     </main>
-    <footer className="footer"><span>BLACK HOLE DATA SERVICES</span></footer>
+    <footer className="footer" style={{padding:"12px 0",marginTop:12}}><span>BLACK HOLE DATA SERVICES</span></footer>
     <a href="https://wa.me/254769252572" target="_blank" rel="noreferrer" aria-label="Chat with BLACK HOLE DATA SERVICES on WhatsApp" style={{position:"fixed",right:16,bottom:24,zIndex:900,width:56,height:56,borderRadius:"50%",background:"#25D366",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(0,0,0,.25)",textDecoration:"none",fontSize:28,fontWeight:700}}><span aria-hidden="true">☎</span></a>
     {checkoutOffer && <div role="dialog" aria-modal="true" aria-labelledby="checkout-title" onClick={(event) => { if (event.target === event.currentTarget && !checkoutBusy) setCheckoutOffer(null); }} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(10,18,16,.68)",backdropFilter:"blur(5px)",display:"grid",placeItems:"center",padding:16}}>
       <form onSubmit={(event) => { event.preventDefault(); void beginCheckout(checkoutOffer); }} style={{position:"relative",width:"100%",maxWidth:410,maxHeight:"88dvh",overflowY:"auto",boxSizing:"border-box",background:"#fff",color:"#14231d",padding:0,borderRadius:22,boxShadow:"0 28px 90px rgba(0,0,0,.32)"}}>
