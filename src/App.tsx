@@ -95,7 +95,7 @@ export default function App() {
       <span><ShieldCheck size={14}/> BLACK HOLE DATA SERVICES</span>
       <span className="top-right"><Smartphone size={14}/> Kenya</span>
     </div>
-    <header className="header">
+    <header className="header" style={{paddingTop:12,paddingBottom:12,minHeight:0}}>
       <a className="brand" href="#home"><span className="brand-mark">B</span><span>BLACK HOLE<small>DATA SERVICES</small></span></a>
       <nav><a href="#offers">Packages</a></nav>
       <button className="outline-btn" onClick={() => document.getElementById('offers')?.scrollIntoView({behavior:'smooth'})}><Smartphone size={17}/> Buy a bundle</button>
@@ -113,15 +113,15 @@ export default function App() {
         <div className="hero-art"><div className="sun-shape"/><div className="art-card art-card-one"><span>STAY CONNECTED</span><strong>Good bundles.<br/>Clear prices.</strong><div className="art-emoji">📱</div></div><div className="art-card art-card-two"><div className="mini-emoji">📶</div><div><strong>Data & more</strong><small>Choose what suits you</small></div><span className="sparkle">✳</span></div><div className="floating-stamp">BINGWA<br/>SMART</div><div className="hero-plant">✳</div></div>
       </section>
       <section className="trust-strip" style={{display:"none"}}><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>M-PESA checkout</span></div></section>
-      <section className="offers-section" id="offers">
-        <div className="section-heading"><div><div className="eyebrow">BLACK HOLE DATA SERVICES</div><h2>Available bundles<span>.</span></h2><p>Offers loaded from the live catalogue database.</p></div><a href="#categories" className="view-all" onClick={() => setGroup('all')}>All offers <ArrowUpRight size={17}/></a></div>
-        <div className="hero-search catalog-search"><Search size={18}/><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
-        <div id="categories" className="categories">{groups.map(item => <button key={item.key} className={group === item.key ? 'category active' : 'category'} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
+      <section className="offers-section" id="offers" style={{paddingTop:20}}>
+        <div className="section-heading"><div><h2 style={{marginTop:0,marginBottom:8}}>Packages<span>.</span></h2></div><a href="#categories" className="view-all" onClick={() => setGroup('all')}>All offers <ArrowUpRight size={17}/></a></div>
+        <div className="hero-search catalog-search" style={{marginBottom:12}}><Search size={18}/><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
+        <div id="categories" className="categories" style={{marginBottom:14}}>{groups.map(item => <button key={item.key} className={group === item.key ? 'category active' : 'category'} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
         {loading && <div className="empty-state">Loading live offers…</div>}
         {!loading && error && <div className="empty-state">{error} <button className="category active" onClick={() => void loadOffers()}>Retry</button></div>}
         {!loading && !error && <div className="deal-grid">{filtered.map((offer, index) => <article className="deal-card" key={offer.id}>
-          <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`}><span className="deal-badge">{groupLabels[offer.group_key] ?? 'Bundle'}</span><span className="product-emoji">{groupIcons[offer.group_key] ?? '📱'}</span><span className="image-index">{String(index + 1).padStart(2,'0')}</span></div>
-          <div className="deal-details"><div className="shop-name">BLACK HOLE DATA SERVICES <span className="verified">✓</span></div><h3>{offer.title}</h3><div className="deal-location"><Clock3 size={13}/>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong><small className="offer-note">{offer.note ?? groupLabels[offer.group_key]}</small></div></div><button className="outline-btn" style={{display:"block",width:"100%",minHeight:48,background:"#111827",color:"#ffffff",border:"2px solid #111827",borderRadius:10,fontWeight:700,fontSize:16,cursor:"pointer",marginTop:14,position:"relative",zIndex:2,visibility:"visible",opacity:1}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
+          <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`} style={{height:92,minHeight:92}}><span className="deal-badge">{groupLabels[offer.group_key] ?? 'Bundle'}</span><span className="product-emoji">{groupIcons[offer.group_key] ?? '📱'}</span></div>
+          <div className="deal-details" style={{padding:12}}><h3>{offer.title}</h3><div className="deal-location"><Clock3 size={13}/>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong><small className="offer-note">{offer.note ?? groupLabels[offer.group_key]}</small></div></div><button className="outline-btn" style={{display:"block",width:"100%",minHeight:48,background:"#111827",color:"#ffffff",border:"2px solid #111827",borderRadius:10,fontWeight:700,fontSize:16,cursor:"pointer",marginTop:14,position:"relative",zIndex:2,visibility:"visible",opacity:1}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
         </article>)}</div>}
         {!loading && !error && filtered.length === 0 && <div className="empty-state">No offers match your search. Try another word or category.</div>}
       </section>
