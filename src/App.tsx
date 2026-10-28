@@ -51,7 +51,7 @@ export default function App() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not start M-PESA checkout.');
-      setNotice(result.message || 'STK Push sent. Check your phone to complete payment.');
+      setNotice('Prompt has been sent to your phone. Check your phone to complete payment.');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Payment could not be started.');
     } finally {
@@ -85,13 +85,13 @@ export default function App() {
   }), [offers, group, search]);
 
   return <div className="app-shell">
-    <div className="topline" style={{padding:"5px 16px",minHeight:0,fontSize:11}}>
+    <div className="topline" style={{display:"none"}}>
       <span>BLACK HOLE DATA SERVICES</span>
       <span className="top-right">Kenya</span>
     </div>
-    <header className="header" style={{paddingTop:8,paddingBottom:8,minHeight:0}}>
+    <header className="header" style={{padding:"5px 0",minHeight:0}}>
       <a className="brand" href="#home"><span>BLACK HOLE<small>DATA SERVICES</small></span></a>
-      <nav><a href="#offers">Packages</a></nav>
+      <nav style={{display:"none"}}><a href="#offers">Packages</a></nav>
       
     </header>
     <main id="home">
@@ -107,14 +107,14 @@ export default function App() {
       </section>
       <section className="trust-strip" style={{display:"none"}}><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>M-PESA checkout</span></div></section>
       <section className="offers-section" id="offers" style={{paddingTop:4}}>
-        <div className="section-heading" style={{marginBottom:8}}><div><h2 style={{margin:0,fontSize:"clamp(1.45rem,5vw,2rem)"}}>Packages</h2></div><span style={{fontSize:12,color:"#66736b"}}>{filtered.length} available</span></div>
+        <div className="section-heading" style={{marginBottom:5}}><div><h2 style={{margin:0,fontSize:"1.3rem",lineHeight:1.2}}>Packages</h2></div><span style={{fontSize:12,color:"#66736b"}}>{filtered.length} available</span></div>
         <div className="hero-search catalog-search" style={{marginBottom:7,padding:8,minHeight:40}}><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
         <div id="categories" className="categories" style={{marginBottom:8}}>{groups.map(item => <button key={item.key} className={group === item.key ? 'category active' : 'category'} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
         {loading && <div className="empty-state">Loading live offers…</div>}
         {!loading && error && <div className="empty-state">{error} <button className="category active" onClick={() => void loadOffers()}>Retry</button></div>}
-        {!loading && !error && <div className="deal-grid">{filtered.map((offer, index) => <article className="deal-card" key={offer.id}>
+        {!loading && !error && <div className="deal-grid">{filtered.map((offer, index) => <article className="deal-card" key={offer.id} style={{minHeight:0,height:"auto",alignSelf:"start"}}>
           <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`} style={{height:0,minHeight:0,padding:0,display:"none"}}></div>
-          <div className="deal-details" style={{padding:12}}><h3 style={{margin:"0 0 5px"}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:8}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"block",width:"100%",minHeight:42,background:"#111827",color:"#ffffff",border:"1px solid #111827",borderRadius:8,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:10}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
+          <div className="deal-details" style={{padding:10}}><h3 style={{margin:"0 0 3px",fontSize:15,lineHeight:1.25}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:4,fontSize:12,lineHeight:1.2}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"block",width:"100%",minHeight:34,padding:"7px 8px",background:"#111827",color:"#ffffff",border:"1px solid #111827",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",marginTop:6}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
         </article>)}</div>}
         {!loading && !error && filtered.length === 0 && <div className="empty-state">No offers match your search. Try another word or category.</div>}
       </section>
@@ -140,7 +140,7 @@ export default function App() {
           <input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0712 345 678" value={checkoutPhone} onChange={event => setCheckoutPhone(event.target.value)} required style={{display:"block",width:"100%",minHeight:52,padding:"13px 14px",border:"1px solid #cbd6cf",borderRadius:11,boxSizing:"border-box",fontSize:17,background:"#fff",color:"#14231d"}} />
           <div style={{fontSize:12,color:"#64736a",marginTop:7}}>Enter your Kenyan number. Never share your M-PESA PIN.</div>
           <button type="submit" disabled={checkoutBusy} style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",minHeight:52,marginTop:18,background:checkoutBusy?"#7a8a80":"#116b3b",color:"#fff",border:0,borderRadius:11,fontWeight:800,fontSize:16,cursor:checkoutBusy?"wait":"pointer"}}>{checkoutBusy ? "Sending STK prompt…" : "Pay with M-PESA →"}</button>
-          {notice && <p role="status" style={{fontSize:13,lineHeight:1.5,color:"#a32929",background:"#fff3f2",borderRadius:9,padding:11,margin:"14px 0 0"}}>{notice}</p>}
+          {notice && <p role="status" style={{fontSize:13,lineHeight:1.5,color:notice.startsWith("Prompt has been sent")?"#116b3b":"#a32929",background:notice.startsWith("Prompt has been sent")?"#edf9f0":"#fff3f2",borderRadius:9,padding:11,margin:"14px 0 0"}}>{notice}</p>}
           <div style={{textAlign:"center",fontSize:11,color:"#7a877f",marginTop:14}}>Secure payment request · KSh pricing</div>
         </div>
       </form>
