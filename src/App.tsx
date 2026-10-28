@@ -129,14 +129,14 @@ export default function App() {
     </main>
     <footer className="footer"><span>BLACK HOLE DATA SERVICES</span></footer>
     {checkoutOffer && <div role="dialog" aria-modal="true" aria-labelledby="checkout-title" style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.58)",display:"grid",placeItems:"center",padding:20}}>
-      <form onSubmit={(event) => { event.preventDefault(); void beginCheckout(checkoutOffer); }} style={{width:"100%",maxWidth:420,background:"white",color:"#171717",padding:24,borderRadius:16,boxShadow:"0 20px 70px rgba(0,0,0,.25)"}}>
+      <form onSubmit={(event) => { event.preventDefault(); void beginCheckout(checkoutOffer); }} style={{width:"100%",maxWidth:420,maxHeight:"82dvh",overflowY:"auto",boxSizing:"border-box",background:"white",color:"#171717",padding:24,borderRadius:16,boxShadow:"0 20px 70px rgba(0,0,0,.25)"}}>
         <button type="button" aria-label="Close" onClick={() => setCheckoutOffer(null)} style={{float:"right",border:0,background:"transparent",fontSize:24}}>×</button>
         <h2 id="checkout-title" style={{marginTop:0}}>Buy package</h2>
         <p>{checkoutOffer.title}</p><p style={{fontSize:22,fontWeight:700}}>KSh {Number(checkoutOffer.price).toLocaleString('en-KE')}</p>
         <label htmlFor="mpesa-phone" style={{display:"block",fontWeight:600,marginBottom:8}}>M-PESA phone number</label>
         <input id="mpesa-phone" type="tel" autoComplete="tel" placeholder="0712345678" value={checkoutPhone} onChange={event => setCheckoutPhone(event.target.value)} required style={{width:"100%",padding:12,border:"1px solid #ccc",borderRadius:8,boxSizing:"border-box",fontSize:16}} />
-        <p style={{fontSize:13,color:"#555"}}>An M-PESA prompt should appear on this phone.</p>
-        <button type="submit" disabled={checkoutBusy} className="outline-btn" style={{width:"100%",justifyContent:"center"}}>{checkoutBusy ? "Requesting STK Push…" : "Pay with M-PESA"}</button>
+        <button type="submit" disabled={checkoutBusy} className="outline-btn" style={{display:"block",width:"100%",minHeight:52,marginTop:14,justifyContent:"center",background:"#111827",color:"#ffffff",border:"2px solid #111827",borderRadius:10,fontWeight:700,fontSize:16,cursor:"pointer"}}>{checkoutBusy ? "Requesting STK Push…" : "Buy package — initiate STK"}</button>
+        <p style={{fontSize:13,color:"#555",marginBottom:0}}>An M-PESA prompt should appear on this phone.</p>
         {notice && <p role="status" style={{fontSize:14}}>{notice}</p>}
       </form>
     </div>}
