@@ -102,8 +102,8 @@ export default async function handler(req: any, res: any) {
       PartyB: shortcode,
       PhoneNumber: customerPhone,
       CallBackURL: callbackUrl,
-      AccountReference: 'BingwaSokoni',
-      TransactionDesc: 'Bundle purchase ' + String(offer.title).slice(0, 60)
+      AccountReference: 'BLACKHOLE',
+      TransactionDesc: 'BUNDLEBUY'
     };
 
     // Buy Goods online uses the Till as PartyB; PayBill uses the configured PayBill.
@@ -129,8 +129,8 @@ export default async function handler(req: any, res: any) {
         UPDATE public.sales SET status = 'failed', result_desc = ${String(stk.errorMessage || stk.ResponseDescription || 'STK request failed').slice(0, 500)}, updated_at = NOW()
         WHERE id = ${saleId}::uuid
       `;
-      console.error('Daraja STK request failed', stkResponse.status, stk.errorMessage || stk.ResponseDescription);
-      return json(res, 502, { error: 'M-PESA could not start the payment prompt. No completed payment is recorded.' });
+      console.error('Daraja STK request failed', JSON.stringify({ httpStatus: stkResponse.status, responseCode: stk.ResponseCode, responseDescription: stk.ResponseDescription, errorMessage: stk.errorMessage }));
+      return json(res, 502, { error: String(stk.errorMessage || stk.ResponseDescription || 'Daraja rejected the STK request. Check shortcode, Party B, transaction type, passkey, and production access.').slice(0, 300), paymentInitiated: false });
     }
 
     await sql`
