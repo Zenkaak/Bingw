@@ -43,8 +43,8 @@ export default function App() {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
 
   async function beginCheckout(offer: Offer) {
-    const phone = checkoutPhone.trim() || window.prompt('Enter the Kenyan M-PESA phone number to pay from (e.g. 0712345678):') || '';
-    if (!phone) return;
+    const phone = checkoutPhone.trim();
+    if (!phone) { setNotice('Enter the M-PESA phone number to continue.'); return; }
     setCheckoutPhone(phone);
     setCheckoutOffer(offer);
     setCheckoutBusy(true);
@@ -92,17 +92,17 @@ export default function App() {
 
   return <div className="app-shell">
     <div className="topline">
-      <span><ShieldCheck size={14}/> BLACK HOLE BINGWA SERVICES</span>
+      <span><ShieldCheck size={14}/> BLACK HOLE DATA SERVICES</span>
       <span className="top-right"><Smartphone size={14}/> Kenya</span>
     </div>
     <header className="header">
-      <a className="brand" href="#home"><span className="brand-mark">B</span><span>Bingwa<span className="brand-accent">Sokoni</span><small>DATA. MINUTES. SMS.</small></span></a>
-      <nav><a href="#offers">Browse offers</a><a href="#how">How it works</a></nav>
+      <a className="brand" href="#home"><span className="brand-mark">B</span><span>BLACK HOLE<small>DATA SERVICES</small></span></a>
+      <nav><a href="#offers">Packages</a></nav>
       <button className="outline-btn" onClick={() => document.getElementById('offers')?.scrollIntoView({behavior:'smooth'})}><Smartphone size={17}/> Buy a bundle</button>
       <button className="mobile-menu" aria-label="Menu" onClick={() => setNotice('Choose a category below to browse the available bundles.')}><Menu/></button>
     </header>
     <main id="home">
-      <section className="hero">
+      <section className="hero" style={{display:"none"}}>
         <div className="hero-copy">
           <div className="eyebrow"><span className="eyebrow-dot"/> BUNDLES FOR YOUR EVERYDAY</div>
           <h1>Your bundle.<br/><em>Your budget.</em><br/>Stay connected.</h1>
@@ -112,23 +112,34 @@ export default function App() {
         </div>
         <div className="hero-art"><div className="sun-shape"/><div className="art-card art-card-one"><span>STAY CONNECTED</span><strong>Good bundles.<br/>Clear prices.</strong><div className="art-emoji">📱</div></div><div className="art-card art-card-two"><div className="mini-emoji">📶</div><div><strong>Data & more</strong><small>Choose what suits you</small></div><span className="sparkle">✳</span></div><div className="floating-stamp">BINGWA<br/>SMART</div><div className="hero-plant">✳</div></div>
       </section>
-      <section className="trust-strip"><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>M-PESA checkout</span></div></section>
+      <section className="trust-strip" style={{display:"none"}}><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>M-PESA checkout</span></div></section>
       <section className="offers-section" id="offers">
-        <div className="section-heading"><div><div className="eyebrow">BLACK HOLE BINGWA SERVICES</div><h2>Available bundles<span>.</span></h2><p>Offers loaded from the live catalogue database.</p></div><a href="#categories" className="view-all" onClick={() => setGroup('all')}>All offers <ArrowUpRight size={17}/></a></div>
+        <div className="section-heading"><div><div className="eyebrow">BLACK HOLE DATA SERVICES</div><h2>Available bundles<span>.</span></h2><p>Offers loaded from the live catalogue database.</p></div><a href="#categories" className="view-all" onClick={() => setGroup('all')}>All offers <ArrowUpRight size={17}/></a></div>
         <div className="hero-search catalog-search"><Search size={18}/><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
         <div id="categories" className="categories">{groups.map(item => <button key={item.key} className={group === item.key ? 'category active' : 'category'} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
         {loading && <div className="empty-state">Loading live offers…</div>}
         {!loading && error && <div className="empty-state">{error} <button className="category active" onClick={() => void loadOffers()}>Retry</button></div>}
         {!loading && !error && <div className="deal-grid">{filtered.map((offer, index) => <article className="deal-card" key={offer.id}>
           <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`}><span className="deal-badge">{groupLabels[offer.group_key] ?? 'Bundle'}</span><span className="product-emoji">{groupIcons[offer.group_key] ?? '📱'}</span><span className="image-index">{String(index + 1).padStart(2,'0')}</span></div>
-          <div className="deal-details"><div className="shop-name">BLACK HOLE BINGWA SERVICES <span className="verified">✓</span></div><h3>{offer.title}</h3><div className="deal-location"><Clock3 size={13}/>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong><small className="offer-note">{offer.note ?? groupLabels[offer.group_key]}</small></div><button aria-label={`Buy ${offer.title}`} className="arrow-btn" onClick={() => { setCheckoutPhone(''); setCheckoutOffer(offer); void beginCheckout(offer); }} disabled={checkoutBusy}><ArrowUpRight size={19}/></button></div></div>
+          <div className="deal-details"><div className="shop-name">BLACK HOLE DATA SERVICES <span className="verified">✓</span></div><h3>{offer.title}</h3><div className="deal-location"><Clock3 size={13}/>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong><small className="offer-note">{offer.note ?? groupLabels[offer.group_key]}</small></div></div><button className="outline-btn" style={{width:"100%",justifyContent:"center",marginTop:14}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}>Buy package</button></div>
         </article>)}</div>}
         {!loading && !error && filtered.length === 0 && <div className="empty-state">No offers match your search. Try another word or category.</div>}
       </section>
-      <section className="bottom-cta" id="how"><div><div className="eyebrow">SIMPLE AND TRANSPARENT</div><h2>Pick the bundle you need.</h2><p>Review the price and validity before checkout. Choose an offer and enter your M-PESA number to request a payment prompt.</p></div><button onClick={() => {setGroup('all');setSearch('');document.getElementById('offers')?.scrollIntoView({behavior:'smooth'});}}>Browse all offers <ArrowUpRight size={17}/></button></section>
+      <section className="bottom-cta" id="how" style={{display:"none"}}><div><div className="eyebrow">SIMPLE AND TRANSPARENT</div><h2>Pick the bundle you need.</h2><p>Review the price and validity before checkout. Choose an offer and enter your M-PESA number to request a payment prompt.</p></div><button onClick={() => {setGroup('all');setSearch('');document.getElementById('offers')?.scrollIntoView({behavior:'smooth'});}}>Browse all offers <ArrowUpRight size={17}/></button></section>
     </main>
-    <footer className="footer"><span>© {new Date().getFullYear()} Bingwa Sokoni</span><span>BLACK HOLE BINGWA SERVICES · Kenya</span></footer>
-    {checkoutOffer && <div className="toast" role="status"><strong>{checkoutOffer.title}</strong> · KSh {Number(checkoutOffer.price).toLocaleString('en-KE')} {checkoutBusy ? 'Starting secure checkout…' : ''}<button aria-label="Close checkout message" onClick={() => setCheckoutOffer(null)}>×</button></div>}
+    <footer className="footer"><span>BLACK HOLE DATA SERVICES</span></footer>
+    {checkoutOffer && <div role="dialog" aria-modal="true" aria-labelledby="checkout-title" style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.58)",display:"grid",placeItems:"center",padding:20}}>
+      <form onSubmit={(event) => { event.preventDefault(); void beginCheckout(checkoutOffer); }} style={{width:"100%",maxWidth:420,background:"white",color:"#171717",padding:24,borderRadius:16,boxShadow:"0 20px 70px rgba(0,0,0,.25)"}}>
+        <button type="button" aria-label="Close" onClick={() => setCheckoutOffer(null)} style={{float:"right",border:0,background:"transparent",fontSize:24}}>×</button>
+        <h2 id="checkout-title" style={{marginTop:0}}>Buy package</h2>
+        <p>{checkoutOffer.title}</p><p style={{fontSize:22,fontWeight:700}}>KSh {Number(checkoutOffer.price).toLocaleString('en-KE')}</p>
+        <label htmlFor="mpesa-phone" style={{display:"block",fontWeight:600,marginBottom:8}}>M-PESA phone number</label>
+        <input id="mpesa-phone" type="tel" autoComplete="tel" placeholder="0712345678" value={checkoutPhone} onChange={event => setCheckoutPhone(event.target.value)} required style={{width:"100%",padding:12,border:"1px solid #ccc",borderRadius:8,boxSizing:"border-box",fontSize:16}} />
+        <p style={{fontSize:13,color:"#555"}}>An M-PESA prompt should appear on this phone.</p>
+        <button type="submit" disabled={checkoutBusy} className="outline-btn" style={{width:"100%",justifyContent:"center"}}>{checkoutBusy ? "Requesting STK Push…" : "Pay with M-PESA"}</button>
+        {notice && <p role="status" style={{fontSize:14}}>{notice}</p>}
+      </form>
+    </div>}
     {notice && <div className="toast" role="status">{notice}<button aria-label="Dismiss notice" onClick={() => setNotice('')}>×</button></div>}
   </div>;
 }
