@@ -15,9 +15,7 @@
     "typescript": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "lucide-react": "latest",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "lucide-react": "latest"
   },
   "devDependencies": {}
 }
