@@ -17,7 +17,8 @@
     "react-dom": "latest",
     "lucide-react": "latest",
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react-dom": "^19.0.0",
+    "@types/node": "^22.10.0"
   },
   "devDependencies": {}
 }
