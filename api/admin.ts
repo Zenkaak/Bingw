@@ -106,7 +106,7 @@ export default async function handler(req: any, res: any) {
       return send(res,200,{settings:rows.map((r:any)=>({key:r.key,configured:true,updated_at:r.updated_at}))});
     }
     if (action === 'settings' && req.method === 'POST') {
-      const allowed = ['BUSINESS_NAME','MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY'];
+      const allowed = ['BUSINESS_NAME','MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY','MERCHANT_NOTIFICATION_PHONE','MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B','MPESA_PAYBILL_ACCOUNT_REFERENCE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY'];
       const values=body.values || {};
       for (const key of allowed) {
         if (values[key] === undefined || values[key] === '') continue;
