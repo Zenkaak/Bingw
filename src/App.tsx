@@ -89,9 +89,11 @@ export default function App() {
           }
         } catch { /* Keep polling through temporary network errors. */ }
       }
-      setPaymentStatus(current => current?.saleId === result.saleId && current.status === 'pending'
-        ? { ...current, status: 'timeout', message: 'We are still waiting for M-PESA confirmation. This is not yet a successful payment; you can check again shortly.' }
-        : current);
+      setPaymentStatus({
+        saleId: result.saleId,
+        status: 'timeout',
+        message: 'We are still waiting for M-PESA confirmation. This is not yet a successful payment; you can check again shortly.'
+      });
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Payment could not be started.');
     } finally {
