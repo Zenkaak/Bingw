@@ -78,6 +78,19 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/api/deals' || url.pathname === '/api/deals/') return offers(request, env);
     if (url.pathname === '/api/admin' || url.pathname === '/api/admin/') return adminProxy(request, env);
+    if (url.pathname === '/api/site-config' || url.pathname === '/api/site-config/') {
+      const databaseUrl = (env.POSTGRES_URL || env.DATABASE_URL || '').trim();
+      if (!databaseUrl) return json({ businessName: 'BLACKHOLE DATA SERVICES' });
+      try {
+        const sql = neon(databaseUrl);
+        const rows = await sql`SELECT value FROM public.admin_settings WHERE key = 'BUSINESS_NAME' LIMIT 1`;
+        const value = String(rows[0]?.value || '').trim();
+        return json({ businessName: value || 'BLACKHOLE DATA SERVICES' }, 200, { 'cache-control': 'no-store' });
+      } catch (error) {
+        console.error('GET /api/site-config failed', error);
+        return json({ businessName: 'BLACKHOLE DATA SERVICES' });
+      }
+    }
     if (url.pathname === '/api/mpesa/stkpush' || url.pathname === '/api/mpesa/stkpush/') {
       return json({ error: 'M-PESA checkout is disabled on this Cloudflare test site. No payment was initiated.' }, 503);
     }
