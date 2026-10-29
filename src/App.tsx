@@ -57,7 +57,15 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ offerId: offer.id, phone, receivingPhone: recipientPhone, forSelf: !forAnother })
       });
-      const result = await response.json();
+      const raw = await response.text();
+      let result: any;
+      try { result = JSON.parse(raw); }
+      catch {
+        const detail = raw.trim().slice(0, 180);
+        throw new Error(raw.trim().startsWith('<') || raw.startsWith('A server error') || raw.startsWith('An error')
+          ? 'The payment API returned a server error instead of JSON. No payment confirmation was received. Please try again later or check the deployment logs.'
+          : 'Invalid response from payment service (' + response.status + '): ' + detail);
+      }
       if (!response.ok) throw new Error(result.error || 'Could not start payment.');
       setNotice('Prompt has been sent to your phone. Check your phone to complete payment.');
     } catch (error) {
