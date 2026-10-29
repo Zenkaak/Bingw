@@ -92,7 +92,9 @@ export default {
       }
     }
     if (url.pathname === '/api/mpesa/stkpush' || url.pathname === '/api/mpesa/stkpush/') {
-      return json({ error: 'M-PESA checkout is disabled on this Cloudflare test site. No payment was initiated.' }, 503);
+      // Forward checkout to the existing server-side Daraja integration. Credentials,
+      // order creation, amount validation and callbacks remain on the trusted API backend.
+      return adminProxy(request, env);
     }
     if (url.pathname.startsWith('/api/')) {
       return json({ error: 'This API route is not enabled on the Cloudflare test site.' }, 501);
