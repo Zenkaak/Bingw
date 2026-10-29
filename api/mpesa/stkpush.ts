@@ -26,30 +26,33 @@ export default async function handler(req: any, res: any) {
   }
 
   const dbUrl = env('POSTGRES_URL') || env('DATABASE_URL');
-  let consumerKey = env('MPESA_CONSUMER_KEY');
-  let consumerSecret = env('MPESA_CONSUMER_SECRET');
-  let passkey = env('MPESA_PASSKEY');
-  let shortcode = env('MPESA_SHORTCODE');
-  let partyB = env('PARTY_B') || shortcode;
+  let consumerKey = '';
+  let consumerSecret = '';
+  let passkey = '';
+  let shortcode = '';
+  let partyB = '';
+  let accountReference = '{phone}';
   let sql: ReturnType<typeof neon> | null = dbUrl ? neon(dbUrl) : null;
   if (sql) {
     try {
-      const saved = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY')` as any[];
+      const saved = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B','MPESA_PAYBILL_ACCOUNT_REFERENCE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY')` as any[];
       for (const row of saved as any[]) {
         const value = row.encrypted ? decrypt(String(row.value)) : String(row.value);
-        if (row.key === 'MPESA_SHORTCODE') shortcode = value;
-        if (row.key === 'PARTY_B') partyB = value;
-        if (row.key === 'MPESA_CONSUMER_KEY') consumerKey = value;
-        if (row.key === 'MPESA_CONSUMER_SECRET') consumerSecret = value;
-        if (row.key === 'MPESA_PASSKEY') passkey = value;
+        if (row.key === 'MPESA_PAYBILL_SHORTCODE') shortcode = value;
+        if (row.key === 'MPESA_PAYBILL_PARTY_B') partyB = value;
+        if (row.key === 'MPESA_PAYBILL_ACCOUNT_REFERENCE') accountReference = value;
+        if (row.key === 'MPESA_PAYBILL_CONSUMER_KEY') consumerKey = value;
+        if (row.key === 'MPESA_PAYBILL_CONSUMER_SECRET') consumerSecret = value;
+        if (row.key === 'MPESA_PAYBILL_PASSKEY') passkey = value;
       }
-    } catch (error) { console.warn('Admin payment settings unavailable; using server environment configuration.'); }
+    } catch (error) { console.warn('Merchant PayBill settings unavailable.'); }
   }
-  const accountType = env('DARAJA_ACCOUNT_TYPE') || env('MPESA_ACCOUNT_TYPE') || 'CustomerBuyGoodsOnline';
+  // Never silently route merchant PayBill checkout to the legacy Till.
+  const accountType = 'CustomerPayBillOnline';
   const darajaEnv = (env('DARAJA_ENV') || 'production').toLowerCase();
   const callbackUrl = env('DARAJA_CALLBACK_URL') || env('MPESA_CALLBACK_URL');
 
-  if (!dbUrl || !consumerKey || !consumerSecret || !passkey || !shortcode || !callbackUrl) {
+  if (!dbUrl || !consumerKey || !consumerSecret || !passkey || !shortcode || !partyB || !callbackUrl) {
     return json(res, 503, { error: 'Payment service is not fully configured. No payment was initiated.' });
   }
   if (!/^https:\/\//i.test(callbackUrl)) {
@@ -125,17 +128,13 @@ export default async function handler(req: any, res: any) {
       PartyB: partyB,
       PhoneNumber: customerPhone,
       CallBackURL: callbackUrl,
-      AccountReference: 'BLACKHOLE',
+      AccountReference: accountReference.replace('{phone}', destinationPhone).replace('{order}', saleId.slice(0, 12)).slice(0, 12),
       TransactionDesc: 'BUNDLEBUY'
     };
 
-    // Buy Goods online uses the Till as PartyB; PayBill uses the configured PayBill.
-    if (transactionType === 'CustomerBuyGoodsOnline') {
-      payload.BusinessShortCode = shortcode;
-      payload.PartyB = partyB;
-    } else {
-      payload.PartyB = partyB;
-    }
+    // CustomerPayBillOnline routes the STK request to the merchant-configured PayBill.
+    payload.BusinessShortCode = shortcode;
+    payload.PartyB = partyB;
 
     const stkResponse = await fetch(baseUrl + '/mpesa/stkpush/v1/processrequest', {
       method: 'POST',
