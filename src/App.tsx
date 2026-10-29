@@ -94,7 +94,7 @@ export default function App() {
     <header className="header" style={{padding:"10px clamp(12px,3vw,28px) 12px",minHeight:0,display:"flex",alignItems:"center",justifyContent:"space-between",gap:18,flexWrap:"wrap"}}>
       <a className="brand" href="#home" style={{display:"flex",alignItems:"baseline",gap:7,whiteSpace:"nowrap",textDecoration:"none",lineHeight:1.1,fontFamily:"inherit",fontWeight:950,fontSize:"clamp(1.05rem,3.7vw,1.8rem)",letterSpacing:"-1px",color:"#124b2b"}}><span style={{font:"inherit",letterSpacing:"inherit"}}>BLACKHOLE</span><span style={{font:"inherit",letterSpacing:"inherit",color:"#21804a"}}>DATA SERVICES</span></a>
       <nav aria-label="Main navigation" style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><a href="#offers" style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 13px",borderRadius:999,background:"#176b3b",border:"1px solid #176b3b",color:"#fff",fontSize:12,fontWeight:800,textDecoration:"none",boxShadow:"0 3px 9px rgba(23,107,59,.16)"}}>Browse packages <ArrowUpRight size={15}/></a><span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 10px",borderRadius:999,border:"1px solid #d7e8dc",background:"#f2f9f4",color:"#38644a",fontSize:10,fontWeight:750,whiteSpace:"nowrap"}}><span style={{width:7,height:7,borderRadius:"50%",background:"#20a464"}}/> M-PESA checkout</span></nav>
-    </header>der>
+    </header>
     <main id="home">
       <section className="hero" style={{display:"none"}}>
         <div className="hero-copy">
