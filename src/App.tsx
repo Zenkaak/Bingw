@@ -53,7 +53,7 @@ export default function App() {
         body: JSON.stringify({ offerId: offer.id, phone, receivingPhone: phone, forSelf: true })
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Could not start M-PESA checkout.');
+      if (!response.ok) throw new Error(result.error || 'Could not start payment.');
       setNotice('Prompt has been sent to your phone. Check your phone to complete payment.');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Payment could not be started.');
@@ -111,7 +111,7 @@ export default function App() {
         </div>
         <div className="hero-art"><div className="sun-shape"/><div className="art-card art-card-one"><span>STAY CONNECTED</span><strong>Good bundles.<br/>Clear prices.</strong><div className="art-emoji">📱</div></div><div className="art-card art-card-two"><div className="mini-emoji">📶</div><div><strong>Data & more</strong><small>Choose what suits you</small></div><span className="sparkle">✳</span></div><div className="floating-stamp">BINGWA<br/>SMART</div><div className="hero-plant">✳</div></div>
       </section>
-      <section className="trust-strip" style={{display:"none"}}><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>M-PESA checkout</span></div></section>
+      <section className="trust-strip" style={{display:"none"}}><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>Simple payment</span></div></section>
       <section className="offers-section" id="offers" style={{paddingTop:2}}>
         
         <div className="hero-search catalog-search" style={{marginBottom:5,padding:"5px 8px",minHeight:34}}><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
