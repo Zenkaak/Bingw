@@ -17,7 +17,7 @@ export default async function handler(req: any, res: any) {
     const normalized = ['completed','success','successful','paid'].includes(status) ? 'success'
       : ['failed','cancelled','canceled','error'].includes(status) ? 'failed'
       : ['pending','initiating','pending_verification','processing'].includes(status) ? 'pending' : 'pending';
-    return res.status(200).json({ status: normalized, message: normalized === 'success' ? 'Payment confirmed.' : normalized === 'failed' ? String(rows[0].result_desc || 'Payment was not completed.').slice(0,180) : 'Waiting for M-PESA confirmation.' });
+    return res.status(200).json({ status: normalized, receipt: normalized === 'success' ? String(rows[0].mpesa_receipt || '') : '', message: normalized === 'success' ? 'Payment confirmed.' : normalized === 'failed' ? String(rows[0].result_desc || 'Payment was not completed.').slice(0,180) : 'Waiting for M-PESA confirmation.' });
   } catch (error) {
     console.error('GET /api/mpesa/order-status failed', error);
     return res.status(500).json({ error: 'Could not check payment status.' });
