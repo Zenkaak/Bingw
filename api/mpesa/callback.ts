@@ -189,7 +189,7 @@ export default async function handler(req: any, res: any) {
           ' at ' + new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Nairobi', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
       }
       const message = receipt + ' Confirmed.on ' + confirmedAt + 'KSH' + Number(order.price).toFixed(2) +
-        ' received from ' + String(callbackPhone) + ' . Transaction cost, KSH0.00.  Receiving payments of Ksh 500 & below in your Lipa na M-PESA till is now FREE!';
+        ' received from ' + String(normalizePhone(order.receiving_phone) || order.receiving_phone || '') + ' . Transaction cost, KSH0.00.  Receiving payments of Ksh 500 & below in your Lipa na M-PESA till is now FREE!';
       await sql`INSERT INTO public.merchant_sms_outbox (sale_id,notification_phone,message,status) VALUES (${order.id}::uuid,${notificationPhone},${message},'pending') ON CONFLICT (sale_id) DO NOTHING`;
     }
 
