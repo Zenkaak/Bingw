@@ -47,9 +47,9 @@ async function verifyDarajaPayment(sql: any, checkoutId: string): Promise<boolea
 }
 
 async function sendMerchantSms(to: string, message: string) {
-  const apiToken = env('SMS_OTS_API_TOKEN');
-  const senderId = env('SMS_OTS_SENDER_ID');
-  if (!apiToken || !senderId) throw new Error('SMS gateway is not configured (SMS_OTS_API_TOKEN / SMS_OTS_SENDER_ID).');
+  const apiToken = env('SMS_OTS_API_TOKEN') || env('OTS_API_TOKEN');
+  const senderId = env('SMS_OTS_SENDER_ID') || env('SENDER_ID');
+  if (!apiToken || !senderId) throw new Error('SMS gateway is not configured (set OTS_API_TOKEN and SENDER_ID, or SMS_OTS_API_TOKEN and SMS_OTS_SENDER_ID).');
   const response = await fetch('https://sms.ots.co.ke/api/v3/sms/send', {
     method: 'POST',
     headers: {
