@@ -40,6 +40,12 @@ export default async function handler(req: any, res: any) {
   if (!dbUrl) return json(res, 503, { error: 'Order database is not configured. No payment was initiated.', missingConfiguration: ['POSTGRES_URL'] });
 
   const sql = neon(dbUrl);
+  await sql`CREATE TABLE IF NOT EXISTS public.site_license (id text PRIMARY KEY DEFAULT 'site', purchase_count integer NOT NULL DEFAULT 0, is_active boolean NOT NULL DEFAULT true, updated_at timestamptz NOT NULL DEFAULT now())`;
+  await sql`INSERT INTO public.site_license (id,purchase_count,is_active) VALUES ('site',0,true) ON CONFLICT (id) DO NOTHING`;
+  const licenseRows = await sql`SELECT purchase_count,is_active FROM public.site_license WHERE id='site' LIMIT 1` as any[];
+  if (!licenseRows[0]?.is_active || Number(licenseRows[0]?.purchase_count || 0) >= 3) {
+    return json(res, 402, { error: 'This website has used its 3 successful test purchases. Renew the site license for KES 1,000 in the admin dashboard to restore purchases and updates.', licenseLocked: true });
+  }
   const saved = await readSettings(sql);
   const { offerId, phone, receivingPhone, forSelf = true } = req.body || {};
   // Checkout intent determines transaction type; admin selector only controls which credentials are edited.
