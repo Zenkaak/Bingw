@@ -17,23 +17,29 @@ function normalizePhone(value: unknown): string | null {
   return null;
 }
 async function sendMerchantSms(to: string, message: string) {
-  const apiKey = env('AT_API_KEY');
-  const username = env('AT_USERNAME');
-  if (!apiKey || !username) throw new Error('SMS gateway is not configured (AT_API_KEY / AT_USERNAME).');
-  const body = new URLSearchParams({ username, to, message });
-  const sender = env('AT_SENDER_ID');
-  if (sender) body.set('from', sender);
-  const response = await fetch('https://api.africastalking.com/version1/messaging', {
+  const apiToken = env('SMS_OTS_API_TOKEN');
+  const senderId = env('SMS_OTS_SENDER_ID');
+  if (!apiToken || !senderId) throw new Error('SMS gateway is not configured (SMS_OTS_API_TOKEN / SMS_OTS_SENDER_ID).');
+  const response = await fetch('https://sms.ots.co.ke/api/v3/sms/send', {
     method: 'POST',
-    headers: { apiKey, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString()
+    headers: {
+      Authorization: 'Bearer ' + apiToken,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      recipient: to,
+      sender_id: senderId,
+      type: 'plain',
+      message
+    })
   });
   const text = await response.text();
-  if (!response.ok) throw new Error('SMS gateway returned HTTP ' + response.status + ': ' + text.slice(0, 250));
-  const result = JSON.parse(text);
-  const recipients = result?.SMSMessageData?.Recipients;
-  if (!Array.isArray(recipients) || !recipients.some((item: any) => Number(item.statusCode) === 101 || Number(item.statusCode) === 102 || Number(item.statusCode) === 100)) {
-    throw new Error('SMS gateway did not accept the notification: ' + String(result?.SMSMessageData?.Message || 'unknown gateway response').slice(0, 250));
+  if (!response.ok) throw new Error('OTS SMS gateway returned HTTP ' + response.status + ': ' + text.slice(0, 250));
+  let result: any;
+  try { result = JSON.parse(text); } catch { throw new Error('OTS SMS gateway returned invalid JSON.'); }
+  if (result?.status === false || result?.success === false || result?.error) {
+    throw new Error('OTS SMS gateway rejected the notification: ' + String(result.message || result.error || 'unknown gateway response').slice(0, 250));
   }
 }
 
