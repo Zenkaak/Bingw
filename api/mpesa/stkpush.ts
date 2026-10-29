@@ -3,6 +3,14 @@ import crypto from 'node:crypto';
 
 const json = (res: any, status: number, body: unknown) => res.status(status).json(body);
 const env = (key: string) => (process.env[key] || '').trim();
+function decrypt(value: string) {
+  const key = Buffer.from(env('ADMIN_ENCRYPTION_KEY'), 'base64');
+  if (key.length !== 32) throw new Error('Admin encryption key is not configured.');
+  const [iv, tag, data] = value.split('.');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64'));
+  decipher.setAuthTag(Buffer.from(tag, 'base64'));
+  return Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]).toString('utf8');
+}
 
 function phoneNumber(value: unknown): string | null {
   const digits = String(value ?? '').replace(/[\s+()-]/g, '');
@@ -18,10 +26,25 @@ export default async function handler(req: any, res: any) {
   }
 
   const dbUrl = env('POSTGRES_URL') || env('DATABASE_URL');
-  const consumerKey = env('MPESA_CONSUMER_KEY');
-  const consumerSecret = env('MPESA_CONSUMER_SECRET');
-  const passkey = env('MPESA_PASSKEY');
-  const shortcode = env('MPESA_SHORTCODE');
+  let consumerKey = env('MPESA_CONSUMER_KEY');
+  let consumerSecret = env('MPESA_CONSUMER_SECRET');
+  let passkey = env('MPESA_PASSKEY');
+  let shortcode = env('MPESA_SHORTCODE');
+  let partyB = env('PARTY_B') || shortcode;
+  let sql: ReturnType<typeof neon> | null = dbUrl ? neon(dbUrl) : null;
+  if (sql) {
+    try {
+      const saved = await sql\`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY')\`;
+      for (const row of saved as any[]) {
+        const value = row.encrypted ? decrypt(String(row.value)) : String(row.value);
+        if (row.key === 'MPESA_SHORTCODE') shortcode = value;
+        if (row.key === 'PARTY_B') partyB = value;
+        if (row.key === 'MPESA_CONSUMER_KEY') consumerKey = value;
+        if (row.key === 'MPESA_CONSUMER_SECRET') consumerSecret = value;
+        if (row.key === 'MPESA_PASSKEY') passkey = value;
+      }
+    } catch (error) { console.warn('Admin payment settings unavailable; using server environment configuration.'); }
+  }
   const accountType = env('DARAJA_ACCOUNT_TYPE') || env('MPESA_ACCOUNT_TYPE') || 'CustomerBuyGoodsOnline';
   const darajaEnv = (env('DARAJA_ENV') || 'production').toLowerCase();
   const callbackUrl = env('DARAJA_CALLBACK_URL') || env('MPESA_CALLBACK_URL');
@@ -50,7 +73,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const sql = neon(dbUrl);
+    if (!sql) sql = neon(dbUrl);
     const offers = await sql`
       SELECT id, title, price::numeric AS price
       FROM public.deals
@@ -99,7 +122,7 @@ export default async function handler(req: any, res: any) {
       TransactionType: transactionType,
       Amount: amount,
       PartyA: customerPhone,
-      PartyB: shortcode,
+      PartyB: partyB,
       PhoneNumber: customerPhone,
       CallBackURL: callbackUrl,
       AccountReference: 'BLACKHOLE',
@@ -109,9 +132,9 @@ export default async function handler(req: any, res: any) {
     // Buy Goods online uses the Till as PartyB; PayBill uses the configured PayBill.
     if (transactionType === 'CustomerBuyGoodsOnline') {
       payload.BusinessShortCode = shortcode;
-      payload.PartyB = env('PARTY_B') || shortcode;
+      payload.PartyB = partyB;
     } else {
-      payload.PartyB = env('PARTY_B') || shortcode;
+      payload.PartyB = partyB;
     }
 
     const stkResponse = await fetch(baseUrl + '/mpesa/stkpush/v1/processrequest', {
