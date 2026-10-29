@@ -1,0 +1,51 @@
+name: Deploy to Vercel Production
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel production configuration
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_Rr4p8wcgsRQR37gS4f4Izg5v
+          VERCEL_PROJECT_ID: prj_b85RDvrApNzcQHMjEjFClAswUopy
+
+      - name: Build for production
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_Rr4p8wcgsRQR37gS4f4Izg5v
+          VERCEL_PROJECT_ID: prj_b85RDvrApNzcQHMjEjFClAswUopy
+
+      - name: Deploy production build
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_Rr4p8wcgsRQR37gS4f4Izg5v
+          VERCEL_PROJECT_ID: prj_b85RDvrApNzcQHMjEjFClAswUopy
