@@ -170,53 +170,6 @@ export default async function handler(req: any, res: any) {
       FROM public.sales WHERE id::text=${String(sale.id)} AND status='completed' AND mpesa_receipt=${receipt} LIMIT 1
     ` as any[])[0] || null);
 
-    // Notify the phone number the customer entered as the recipient, but only
-    // after the payment has been independently verified with Daraja.
-    await sql`CREATE TABLE IF NOT EXISTS public.recipient_sms_outbox (
-      sale_id uuid PRIMARY KEY REFERENCES public.sales(id) ON DELETE CASCADE,
-      recipient_phone text NOT NULL,
-      message text NOT NULL,
-      status text NOT NULL DEFAULT 'pending',
-      attempts integer NOT NULL DEFAULT 0,
-      last_error text,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    )`;
-    if (completedOrder) {
-      const order = completedOrder;
-      const recipientPhone = normalizePhone(order.receiving_phone);
-      if (recipientPhone) {
-        const recipientMessage = [
-          'BLACKHOLE DATA SERVICES: Payment confirmed.',
-          'Order: ' + String(order.id).slice(0, 12),
-          'Bundle: ' + String(order.offer_title || 'Data/SMS bundle').slice(0, 80),
-          'Amount paid: KES ' + Number(order.price).toFixed(0),
-          'M-PESA receipt: ' + receipt,
-          'This confirms payment; delivery status may be sent separately.'
-        ].join(' | ').slice(0, 480);
-        await sql`INSERT INTO public.recipient_sms_outbox (sale_id,recipient_phone,message,status)
-          VALUES (${order.id}::uuid,${recipientPhone},${recipientMessage},'pending')
-          ON CONFLICT (sale_id) DO NOTHING`;
-        const queuedRecipient = await sql`SELECT sale_id::text AS sale_id,recipient_phone,message,status FROM public.recipient_sms_outbox WHERE sale_id=${String(order.id)}::uuid LIMIT 1` as any[];
-        if (queuedRecipient.length && queuedRecipient[0].status !== 'sent') {
-          const recipientClaim = await sql`UPDATE public.recipient_sms_outbox SET status='sending',attempts=attempts+1,updated_at=NOW(),last_error=NULL WHERE sale_id=${String(order.id)}::uuid AND status IN ('pending','failed','pending_configuration') RETURNING recipient_phone,message` as any[];
-          if (recipientClaim.length) {
-            try {
-              await sendMerchantSms(String(recipientClaim[0].recipient_phone), String(recipientClaim[0].message));
-              await sql`UPDATE public.recipient_sms_outbox SET status='sent',last_error=NULL,updated_at=NOW() WHERE sale_id=${String(order.id)}::uuid`;
-            } catch (smsError) {
-              const detail = String((smsError as any)?.message || 'Recipient SMS failed').slice(0, 500);
-              const status = detail.includes('not configured') ? 'pending_configuration' : 'failed';
-              await sql`UPDATE public.recipient_sms_outbox SET status=${status},last_error=${detail},updated_at=NOW() WHERE sale_id=${String(order.id)}::uuid`;
-              console.error('Recipient order SMS not sent', { saleId: sale.id, error: detail });
-            }
-          }
-        }
-      } else {
-        console.warn('Order recipient phone is invalid; recipient SMS skipped', { saleId: sale.id });
-      }
-    }
-
     if (completedOrder && notificationPhone) {
       const order = completedOrder;
       const message = [
