@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, CheckCircle2, Clock3, Search, ShieldCheck, Smartphone } from 'lucide-react';
+import Admin from './Admin';
 
 type Offer = {
   id: string;
@@ -26,6 +27,7 @@ const groupLabels: Record<string, string> = {
 };
 
 export default function App() {
+  if (typeof window !== 'undefined' && window.location.pathname.replace(/\\/$/, '') === '/adm') return <Admin />;
   const [offers, setOffers] = useState<Offer[]>([]);
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('all');
