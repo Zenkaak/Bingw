@@ -79,7 +79,7 @@ export default async function handler(req: any, res: any) {
     if (user.must_change_password && action !== 'password') return send(res,403,{error:'Change the temporary password first.',mustChangePassword:true});
     if (action === 'dashboard' && req.method === 'GET') {
       const [summary, sales] = await Promise.all([
-        sql`SELECT count(*)::int AS total_orders, count(*) FILTER (WHERE status IN ('completed','success','successful'))::int AS successful_orders, count(*) FILTER (WHERE status IN ('failed','cancelled','canceled','error'))::int AS failed_orders, COALESCE(sum(price) FILTER (WHERE status IN ('completed','success','successful')),0)::numeric AS sales_total FROM public.sales`,
+        sql`SELECT count(*)::int AS total_orders, count(*) FILTER (WHERE status IN ('completed','success','successful','paid'))::int AS successful_orders, count(*) FILTER (WHERE status IN ('failed','cancelled','canceled','error'))::int AS failed_orders, COALESCE(sum(price) FILTER (WHERE status IN ('completed','success','successful')),0)::numeric AS sales_total FROM public.sales`,
         sql`SELECT id,offer_title,price,payment_phone,receiving_phone,service,destination,status,mpesa_receipt,result_desc,checkout_request_id,created_at,updated_at FROM public.sales ORDER BY created_at DESC LIMIT 200`
       ]);
       return send(res,200,{summary:summary[0],sales});
