@@ -43,17 +43,17 @@ export default async function handler(req: any, res: any) {
   const saved = await readSettings(sql);
   // Vercel environment variables take precedence for Daraja API credentials.
   // Database values are only a fallback for values already saved in admin settings.
-  const accountType = (env('DARAJA_ACCOUNT_TYPE') || saved.DARAJA_ACCOUNT_TYPE || env('MPESA_PAYBILL_ACCOUNT_TYPE') || 'CustomerPayBillOnline').trim();
+  const accountType = (saved.DARAJA_ACCOUNT_TYPE || env('DARAJA_ACCOUNT_TYPE') || env('MPESA_PAYBILL_ACCOUNT_TYPE') || 'CustomerPayBillOnline').trim();
   const isPayBill = accountType === 'CustomerPayBillOnline';
   const consumerKey = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') : '') || env('MPESA_CONSUMER_KEY') ||
-    (isPayBill ? saved.MPESA_PAYBILL_CONSUMER_KEY : '') || saved.MPESA_CONSUMER_KEY || (!isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') || saved.MPESA_PAYBILL_CONSUMER_KEY : '');
+    (isPayBill ? saved.MPESA_PAYBILL_CONSUMER_KEY : '') || saved.MPESA_CONSUMER_KEY;
   const consumerSecret = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') : '') || env('MPESA_CONSUMER_SECRET') ||
-    (isPayBill ? saved.MPESA_PAYBILL_CONSUMER_SECRET : '') || saved.MPESA_CONSUMER_SECRET || (!isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') || saved.MPESA_PAYBILL_CONSUMER_SECRET : '');
+    (isPayBill ? saved.MPESA_PAYBILL_CONSUMER_SECRET : '') || saved.MPESA_CONSUMER_SECRET;
   const shortcode = (isPayBill
-    ? env('MPESA_PAYBILL_SHORTCODE') || saved.MPESA_PAYBILL_SHORTCODE
-    : env('MPESA_SHORTCODE') || saved.MPESA_SHORTCODE) || (isPayBill ? env('MPESA_SHORTCODE') : '');
+    ? saved.MPESA_PAYBILL_SHORTCODE || env('MPESA_PAYBILL_SHORTCODE') || env('MPESA_SHORTCODE')
+    : saved.MPESA_SHORTCODE || env('MPESA_SHORTCODE'));
   const passkey = (isPayBill ? env('MPESA_PAYBILL_PASSKEY') : '') || env('MPESA_PASSKEY') ||
-    (isPayBill ? saved.MPESA_PAYBILL_PASSKEY : '') || saved.MPESA_PASSKEY || (!isPayBill ? env('MPESA_PAYBILL_PASSKEY') || saved.MPESA_PAYBILL_PASSKEY : '');
+    (isPayBill ? saved.MPESA_PAYBILL_PASSKEY : '') || saved.MPESA_PASSKEY;
   const partyB = isPayBill
     ? (saved.MPESA_PAYBILL_PARTY_B || env('MPESA_PAYBILL_PARTY_B') || shortcode)
     : (saved.PARTY_B || env('PARTY_B') || shortcode);
