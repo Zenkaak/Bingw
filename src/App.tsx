@@ -86,7 +86,7 @@ export default function App() {
     return matchesGroup && matchesSearch;
   }), [offers, group, search]);
 
-  return <div className="app-shell">
+  return <div className="app-shell"><style>{`@keyframes brandGlow{0%,100%{opacity:1;transform:translateY(0)}50%{opacity:.82;transform:translateY(-1px)}} .brand{animation:brandGlow 3s ease-in-out infinite} .deal-grid{align-items:start!important;grid-auto-rows:auto!important;gap:8px!important}.deal-card{height:auto!important;min-height:0!important;align-self:start!important}.deal-details{display:block!important;padding:8px!important}.deal-bottom{margin-top:3px!important}.deal-details h3{font-size:14px!important;line-height:1.15!important}.deal-location{margin-bottom:2px!important;line-height:1.15!important}.deal-details .outline-btn{min-height:30px!important;margin-top:4px!important;padding:5px 6px!important;font-size:12px!important}@media(prefers-reduced-motion:reduce){.brand{animation:none}}`}</style>
     <div className="topline" style={{display:"none"}}>
       <span>BLACK HOLE DATA SERVICES</span>
       <span className="top-right">Kenya</span>
