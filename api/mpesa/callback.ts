@@ -1,18 +1,14 @@
 import { neon } from '@neondatabase/serverless';
+import crypto from 'node:crypto';
 
 const env = (key: string) => (process.env[key] || '').trim();
 function decrypt(value: string) {
   const key = Buffer.from(env('ADMIN_ENCRYPTION_KEY'), 'base64');
   if (key.length !== 32) throw new Error('Admin encryption key is not configured.');
   const [iv, tag, data] = value.split('.');
-  const decipher = (awaitlessCreateDecipheriv(key, iv, tag));
-  return decipher(data);
-}
-function awaitlessCreateDecipheriv(key: Buffer, iv: string, tag: string) {
-  const crypto = require('node:crypto');
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64'));
   decipher.setAuthTag(Buffer.from(tag, 'base64'));
-  return (data: string) => Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]).toString('utf8');
+  return Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]).toString('utf8');
 }
 function normalizePhone(value: unknown): string | null {
   const digits = String(value ?? '').replace(/[\\s+()-]/g, '');
