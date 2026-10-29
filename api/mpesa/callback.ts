@@ -103,6 +103,31 @@ export default async function handler(req: any, res: any) {
     const callbackPhone = normalizePhone(items.PhoneNumber);
     const resultDesc = String(callback.ResultDesc || (resultCode === 0 ? 'Payment confirmed' : 'Payment failed')).slice(0, 500);
     const sql = neon(dbUrl);
+    await sql`CREATE TABLE IF NOT EXISTS public.site_license (id text PRIMARY KEY DEFAULT 'site', purchase_count integer NOT NULL DEFAULT 0, is_active boolean NOT NULL DEFAULT true, updated_at timestamptz NOT NULL DEFAULT now())`;
+    await sql`INSERT INTO public.site_license (id,purchase_count,is_active) VALUES ('site',0,true) ON CONFLICT (id) DO NOTHING`;
+    await sql`CREATE TABLE IF NOT EXISTS public.site_renewals (id uuid PRIMARY KEY, checkout_request_id text UNIQUE, phone text NOT NULL, amount integer NOT NULL DEFAULT 1000, status text NOT NULL DEFAULT 'initiating', mpesa_receipt text, result_desc text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`;
+    const renewalRows = await sql`SELECT id::text AS id,phone,amount,status FROM public.site_renewals WHERE checkout_request_id=${checkoutId} LIMIT 1` as any[];
+    if (renewalRows.length) {
+      const renewal = renewalRows[0];
+      if (resultCode !== 0) {
+        await sql`UPDATE public.site_renewals SET status=CASE WHEN status='completed' THEN status ELSE 'failed' END,result_desc=${resultDesc},updated_at=now() WHERE checkout_request_id=${checkoutId} AND status<>'completed'`;
+        return res.status(200).json({ ResultCode: 0, ResultDesc: 'Renewal failure recorded' });
+      }
+      if (!receipt || callbackAmount !== 1000 || Number(renewal.amount) !== 1000 || !callbackPhone || normalizePhone(renewal.phone) !== callbackPhone) {
+        await sql`UPDATE public.site_renewals SET status=CASE WHEN status='completed' THEN status ELSE 'pending_verification' END,result_desc='Renewal callback mismatch; manual reconciliation required',updated_at=now() WHERE id=${String(renewal.id)}::uuid AND status<>'completed'`;
+        return res.status(200).json({ ResultCode: 0, ResultDesc: 'Renewal held for reconciliation' });
+      }
+      const providerVerified = await verifyDarajaPayment(sql, checkoutId, 'CustomerPayBillOnline');
+      if (!providerVerified) {
+        await sql`UPDATE public.site_renewals SET status=CASE WHEN status='completed' THEN status ELSE 'pending_verification' END,result_desc='Daraja STK query has not confirmed renewal completion',updated_at=now() WHERE id=${String(renewal.id)}::uuid AND status<>'completed'`;
+        return res.status(200).json({ ResultCode: 0, ResultDesc: 'Renewal held for provider verification' });
+      }
+      const completedRenewal = await sql`UPDATE public.site_renewals SET status='completed',mpesa_receipt=${receipt},result_desc=${resultDesc},updated_at=now() WHERE id=${String(renewal.id)}::uuid AND status<>'completed' RETURNING id` as any[];
+      if (completedRenewal.length) {
+        await sql`UPDATE public.site_license SET purchase_count=0,is_active=true,updated_at=now() WHERE id='site'`;
+      }
+      return res.status(200).json({ ResultCode: 0, ResultDesc: 'Renewal processed' });
+    }
 
     if (resultCode !== 0) {
       await sql`UPDATE public.sales SET status=CASE WHEN status='completed' THEN status ELSE 'failed' END, result_desc=${resultDesc}, updated_at=NOW() WHERE checkout_request_id=${checkoutId} AND status<>'completed'`;
@@ -165,6 +190,9 @@ export default async function handler(req: any, res: any) {
       RETURNING id::text AS id, offer_title, price::numeric AS price, receiving_phone
     ` as any[];
 
+    if (paid.length) {
+      await sql`UPDATE public.site_license SET purchase_count=LEAST(purchase_count+1,3),is_active=CASE WHEN purchase_count+1>=3 THEN false ELSE is_active END,updated_at=now() WHERE id='site'`;
+    }
     const completedOrder = paid.length ? paid[0] : ((await sql`
       SELECT id::text AS id, offer_title, price::numeric AS price, receiving_phone, for_self, mpesa_receipt
       FROM public.sales WHERE id::text=${String(sale.id)} AND status='completed' AND mpesa_receipt=${receipt} LIMIT 1
