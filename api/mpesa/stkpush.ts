@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
   await sql`INSERT INTO public.site_license (id,purchase_count,is_active) VALUES ('site',0,true) ON CONFLICT (id) DO NOTHING`;
   const licenseRows = await sql`SELECT purchase_count,is_active FROM public.site_license WHERE id='site' LIMIT 1` as any[];
   if (!licenseRows[0]?.is_active || Number(licenseRows[0]?.purchase_count || 0) >= 3) {
-    return json(res, 402, { error: 'This website has used its 3 successful test purchases. Renew the site license for KES 1,000 in the admin dashboard to restore purchases and updates.', licenseLocked: true });
+    return json(res, 402, { error: 'Sorry, purchases are temporarily unavailable. Please try again later.', licenseLocked: true });
   }
   const saved = await readSettings(sql);
   const { offerId, phone, receivingPhone, forSelf = true } = req.body || {};
