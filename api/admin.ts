@@ -130,26 +130,22 @@ export default async function handler(req: any, res: any) {
       const rawPhone = String(rows[0]?.value || env('MERCHANT_NOTIFICATION_PHONE') || '').replace(/[\\s+()-]/g,'');
       const recipient = /^0[17]\\d{8}$/.test(rawPhone) ? '254' + rawPhone.slice(1) : /^254[17]\\d{8}$/.test(rawPhone) ? rawPhone : '';
       if (!recipient) return send(res,400,{error:'Save a valid Kenyan notification phone number before testing SMS.'});
-      const username = env('AT_USERNAME');
-      const apiKey = env('AT_API_KEY');
-      const senderId = env('AT_SENDER_ID');
-      if (!username || !apiKey) return send(res,503,{error:'SMS gateway is not configured. Add AT_USERNAME and AT_API_KEY to the Vercel production environment, then redeploy.'});
-      const params = new URLSearchParams({username,to:'+' + recipient,message:'BLACKHOLE DATA SERVICES test SMS: your notification gateway is responding.'});
-      if (senderId) params.set('from',senderId);
-      const smsResponse = await fetch('https://api.africastalking.com/version1/messaging',{
+      const apiToken = env('SMS_OTS_API_TOKEN') || env('OTS_API_TOKEN');
+      const senderId = env('SMS_OTS_SENDER_ID') || env('SENDER_ID');
+      if (!apiToken || !senderId) return send(res,503,{error:'SMS gateway is not configured. Add OTS_API_TOKEN and SENDER_ID (or SMS_OTS_API_TOKEN and SMS_OTS_SENDER_ID) to Vercel production settings, then redeploy.'});
+      const smsResponse = await fetch('https://sms.ots.co.ke/api/v3/sms/send',{
         method:'POST',
-        headers:{'apiKey':apiKey,'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded'},
-        body:params.toString()
+        headers:{Authorization:'Bearer ' + apiToken,Accept:'application/json','Content-Type':'application/json'},
+        body:JSON.stringify({recipient:'+' + recipient,sender_id:senderId,type:'plain',message:'BLACKHOLE DATA SERVICES test SMS: your notification gateway is responding.'})
       });
       const raw = await smsResponse.text();
       let result:any;
       try { result = JSON.parse(raw); } catch { result = null; }
-      const recipientResult = result?.SMSMessageData?.Recipients?.find((item:any)=>String(item.number||'').replace(/^\\+/,'')===recipient);
-      if (!smsResponse.ok || !recipientResult || !['Success','Sent'].includes(String(recipientResult.status||''))) {
-        console.error('Test SMS gateway request failed',JSON.stringify({httpStatus:smsResponse.status,providerStatus:recipientResult?.status,providerCode:recipientResult?.statusCode}));
-        return send(res,502,{error:'SMS provider did not confirm the test message. Check the Africa’s Talking account, sender ID, and message credits.'});
+      if (!smsResponse.ok || !result || result.status === false || result.success === false || result.error) {
+        console.error('Test SMS gateway request failed',JSON.stringify({httpStatus:smsResponse.status,providerMessage:result?.message}));
+        return send(res,502,{error:'SMS provider did not accept the test message. Check the OTS account, sender ID, and SMS credits.'});
       }
-      return send(res,200,{ok:true,message:'Test SMS accepted by the provider for +' + recipient + '. Delivery may take a short time.',providerStatus:recipientResult.status});
+      return send(res,200,{ok:true,message:'Test SMS request accepted by the OTS gateway for +' + recipient + '. Delivery may take a short time.'});
     }
     return send(res,404,{error:'Unknown admin action.'});
   } catch (error) {
