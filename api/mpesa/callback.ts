@@ -115,7 +115,7 @@ export default async function handler(req: any, res: any) {
 
     // Match the provider callback to the exact pending order before recording it as paid.
     const matched = await sql`
-      SELECT id::text AS id, offer_title, price::numeric AS price, payment_phone, receiving_phone, status, destination
+      SELECT id::text AS id, offer_title, price::numeric AS price, payment_phone, receiving_phone, for_self, status, destination
       FROM public.sales
       WHERE checkout_request_id=${checkoutId}
       LIMIT 1
@@ -166,11 +166,11 @@ export default async function handler(req: any, res: any) {
     ` as any[];
 
     const completedOrder = paid.length ? paid[0] : ((await sql`
-      SELECT id::text AS id, offer_title, price::numeric AS price, receiving_phone, mpesa_receipt
+      SELECT id::text AS id, offer_title, price::numeric AS price, receiving_phone, for_self, mpesa_receipt
       FROM public.sales WHERE id::text=${String(sale.id)} AND status='completed' AND mpesa_receipt=${receipt} LIMIT 1
     ` as any[])[0] || null);
 
-    if (completedOrder && notificationPhone) {
+    if (completedOrder && notificationPhone && sale.for_self === false) {
       const order = completedOrder;
       const transactionDate = String(items.TransactionDate ?? '');
       let confirmedAt = '';
@@ -193,7 +193,7 @@ export default async function handler(req: any, res: any) {
       await sql`INSERT INTO public.merchant_sms_outbox (sale_id,notification_phone,message,status) VALUES (${order.id}::uuid,${notificationPhone},${message},'pending') ON CONFLICT (sale_id) DO NOTHING`;
     }
 
-    if (notificationPhone) {
+    if (notificationPhone && sale.for_self === false) {
       const queued = await sql`SELECT sale_id::text AS sale_id,notification_phone,message,status FROM public.merchant_sms_outbox WHERE sale_id=${String(sale.id)}::uuid LIMIT 1` as any[];
       if (queued.length && queued[0].status !== 'sent') {
         const claim = await sql`UPDATE public.merchant_sms_outbox SET status='sending',attempts=attempts+1,updated_at=NOW(),last_error=NULL WHERE sale_id=${String(sale.id)}::uuid AND status IN ('pending','failed','pending_configuration') RETURNING sale_id::text AS sale_id,notification_phone,message` as any[];
@@ -209,7 +209,7 @@ export default async function handler(req: any, res: any) {
           }
         }
       }
-    } else {
+    } else if (sale.for_self === false) {
       console.warn('Merchant notification phone is not configured; payment recorded without SMS');
     }
 
