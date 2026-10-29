@@ -31,7 +31,7 @@ export default async function handler(req: any, res: any) {
   let passkey = '';
   let shortcode = '';
   let partyB = '';
-  let accountReference = '{phone}';
+  let accountReference = '';
   let sql: ReturnType<typeof neon> | null = dbUrl ? neon(dbUrl) : null;
   if (sql) {
     try {
@@ -52,7 +52,7 @@ export default async function handler(req: any, res: any) {
   const darajaEnv = (env('DARAJA_ENV') || 'production').toLowerCase();
   const callbackUrl = env('DARAJA_CALLBACK_URL') || env('MPESA_CALLBACK_URL');
 
-  if (!dbUrl || !consumerKey || !consumerSecret || !passkey || !shortcode || !partyB || !callbackUrl) {
+  if (!dbUrl || !consumerKey || !consumerSecret || !passkey || !shortcode || !partyB || !accountReference || !callbackUrl) {
     return json(res, 503, { error: 'Payment service is not fully configured. No payment was initiated.' });
   }
   if (!/^https:\/\//i.test(callbackUrl)) {
@@ -128,7 +128,7 @@ export default async function handler(req: any, res: any) {
       PartyB: partyB,
       PhoneNumber: customerPhone,
       CallBackURL: callbackUrl,
-      AccountReference: accountReference.replace('{phone}', destinationPhone).replace('{order}', saleId.slice(0, 12)).slice(0, 12),
+      AccountReference: accountReference.slice(0, 12),
       TransactionDesc: 'BUNDLEBUY'
     };
 
