@@ -106,11 +106,12 @@ export default async function handler(req: any, res: any) {
       return send(res,200,{settings:rows.map((r:any)=>({key:r.key,configured:true,updated_at:r.updated_at}))});
     }
     if (action === 'settings' && req.method === 'POST') {
-      const allowed = ['MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY'];
+      const allowed = ['BUSINESS_NAME','MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY'];
       const values=body.values || {};
       for (const key of allowed) {
         if (values[key] === undefined || values[key] === '') continue;
         const value=String(values[key]).trim();
+        if (key === 'BUSINESS_NAME' && (value.length < 2 || value.length > 100)) return send(res,400,{error:'Business name must be between 2 and 100 characters.'});
         if (key === 'MPESA_SHORTCODE' && !/^\d{5,7}$/.test(value)) return send(res,400,{error:'M-PESA shortcode must be 5–7 digits.'});
         if (key === 'PARTY_B' && !/^\d{5,7}$/.test(value)) return send(res,400,{error:'Till number must be 5–7 digits.'});
         const secret=['MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY'].includes(key);
