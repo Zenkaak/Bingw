@@ -90,7 +90,7 @@ export default function App() {
       <span className="top-right">Kenya</span>
     </div>
     <header className="header" style={{padding:"10px 0 12px",minHeight:0,display:"block"}}>
-      <a className="brand" href="#home" style={{display:"block",width:"100%",textDecoration:"none"}}><span style={{display:"block",fontSize:"clamp(1.8rem,8vw,2.5rem)",fontWeight:900,letterSpacing:"-1.2px",lineHeight:1.05}}>BLACKHOLE<small style={{display:"block",fontSize:"clamp(1rem,4.5vw,1.35rem)",fontWeight:850,letterSpacing:"2.5px",lineHeight:1.25,marginTop:3}}>DATA SERVICES</small></span></a>
+      <a className="brand" href="#home" style={{display:"flex",alignItems:"baseline",gap:8,width:"100%",whiteSpace:"nowrap",textDecoration:"none",lineHeight:1.1}}><span style={{fontSize:"clamp(1.55rem,7vw,2.5rem)",fontWeight:900,letterSpacing:"-1.2px"}}>BLACKHOLE</span><span style={{fontSize:"clamp(.8rem,3.8vw,1.35rem)",fontWeight:850,letterSpacing:"1px"}}>DATA SERVICES</span></a>
       <nav style={{display:"none"}}><a href="#offers">Packages</a></nav>
       
     </header>
