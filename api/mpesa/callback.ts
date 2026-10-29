@@ -172,14 +172,24 @@ export default async function handler(req: any, res: any) {
 
     if (completedOrder && notificationPhone) {
       const order = completedOrder;
-      const message = [
-        'BLACKHOLE DATA SERVICES - ORDER PAYMENT VERIFIED',
-        'Order: ' + String(order.id).slice(0, 12),
-        'Bundle: ' + String(order.offer_title || 'Data/SMS bundle').slice(0, 80),
-        'Amount: KES ' + Number(order.price).toFixed(0),
-        'Recipient: ' + String(normalizePhone(order.receiving_phone) || order.receiving_phone || 'Not recorded'),
-        'M-PESA receipt: ' + receipt
-      ].join(' | ').slice(0, 480);
+      const transactionDate = String(items.TransactionDate ?? '');
+      let confirmedAt = '';
+      if (/^\\d{14}$/.test(transactionDate)) {
+        const day = transactionDate.slice(6, 8);
+        const month = transactionDate.slice(4, 6);
+        const year = transactionDate.slice(2, 4);
+        let hour = Number(transactionDate.slice(8, 10));
+        const minute = transactionDate.slice(10, 12);
+        const suffix = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12 || 12;
+        confirmedAt = day + '/' + month + '/' + year + ' at ' + hour + ':' + minute + ' ' + suffix;
+      } else {
+        const now = new Date();
+        confirmedAt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Nairobi', day: '2-digit', month: '2-digit', year: '2-digit' }).format(now) +
+          ' at ' + new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Nairobi', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
+      }
+      const message = receipt + ' Confirmed.on ' + confirmedAt + 'KSH' + Number(order.price).toFixed(2) +
+        ' received from ' + String(callbackPhone) + ' . Transaction cost, KSH0.00.  Receiving payments of Ksh 500 & below in your Lipa na M-PESA till is now FREE!';
       await sql`INSERT INTO public.merchant_sms_outbox (sale_id,notification_phone,message,status) VALUES (${order.id}::uuid,${notificationPhone},${message},'pending') ON CONFLICT (sale_id) DO NOTHING`;
     }
 
