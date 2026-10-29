@@ -27,7 +27,7 @@ const groupLabels: Record<string, string> = {
 };
 
 export default function App() {
-  if (typeof window !== 'undefined' && window.location.pathname === '/adm' || window.location.pathname === '/adm/') return <Admin />;
+  if (typeof window !== 'undefined' && (window.location.pathname === '/adm' || window.location.pathname === '/adm/')) return <Admin />;
   const [offers, setOffers] = useState<Offer[]>([]);
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('all');
