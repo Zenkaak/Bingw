@@ -80,7 +80,7 @@ export default function App() {
           if (!statusResponse.ok) continue;
           const payment = await statusResponse.json();
           if (payment.status === 'success') {
-            setPaymentStatus({ saleId: result.saleId, status: 'success', message: 'Your purchase is successful!' });
+            setPaymentStatus({ saleId: result.saleId, status: 'success', message: 'Your purchase is successful!', receipt: String(payment.receipt || '') });
             return;
           }
           if (payment.status === 'failed') {
@@ -202,7 +202,7 @@ export default function App() {
         <h2 style={{fontSize:25,margin:"0 0 12px"}}>{paymentStatus.status==='success'?'Your purchase is successful!':paymentStatus.status==='failed'?'Payment not completed':paymentStatus.status==='timeout'?'Still confirming payment':'Waiting for payment'}</h2>
         <p style={{fontSize:15,lineHeight:1.6,margin:"0 0 20px"}}>{paymentStatus.message}</p>
         {paymentStatus.status==='pending' && <div style={{display:"flex",justifyContent:"center",gap:8,alignItems:"center",fontSize:13,opacity:.9}}><span style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",animation:"brandGlow 1s infinite"}}/>Checking M-PESA status…</div>}
-        {paymentStatus.status==='timeout' && <button onClick={async()=>{const id=paymentStatus.saleId;setPaymentStatus({...paymentStatus,status:'pending',message:'Checking the latest M-PESA status…'});try{const r=await fetch('/api/mpesa/order-status?saleId='+encodeURIComponent(id),{cache:'no-store'});const d=await r.json();if(d.status==='success')setPaymentStatus({saleId:id,status:'success',message:'Your purchase is successful!'});else if(d.status==='failed')setPaymentStatus({saleId:id,status:'failed',message:d.message||'Payment was not completed.'});else setPaymentStatus({saleId:id,status:'timeout',message:'Still waiting for confirmation from M-PESA.'});}catch{setPaymentStatus({...paymentStatus,status:'timeout',message:'Could not reach the status service. Please try again.'});}}} style={{padding:"12px 18px",border:0,borderRadius:12,background:"#176b3b",color:"#fff",fontWeight:800}}>Check payment again</button>}
+        {paymentStatus.status==='timeout' && <button onClick={async()=>{const id=paymentStatus.saleId;setPaymentStatus({...paymentStatus,status:'pending',message:'Checking the latest M-PESA status…'});try{const r=await fetch('/api/mpesa/order-status?saleId='+encodeURIComponent(id),{cache:'no-store'});const d=await r.json();if(d.status==='success')setPaymentStatus({saleId:id,status:'success',message:'Your purchase is successful!',receipt:String(d.receipt||'')});else if(d.status==='failed')setPaymentStatus({saleId:id,status:'failed',message:d.message||'Payment was not completed.'});else setPaymentStatus({saleId:id,status:'timeout',message:'Still waiting for confirmation from M-PESA.'});}catch{setPaymentStatus({...paymentStatus,status:'timeout',message:'Could not reach the status service. Please try again.'});}}} style={{padding:"12px 18px",border:0,borderRadius:12,background:"#176b3b",color:"#fff",fontWeight:800}}>Check payment again</button>}
         {(paymentStatus.status==='success'||paymentStatus.status==='failed') && <button onClick={()=>setPaymentStatus(null)} style={{marginTop:8,padding:"12px 18px",border:0,borderRadius:12,background:paymentStatus.status==='success'?"#fff":"#176b3b",color:paymentStatus.status==='success'?"#14532d":"#fff",fontWeight:800}}>{paymentStatus.status==='success'?'Continue shopping':'Close'}</button>}
       </div>
     </div>}
