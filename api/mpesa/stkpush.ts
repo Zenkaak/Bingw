@@ -26,34 +26,54 @@ export default async function handler(req: any, res: any) {
   }
 
   const dbUrl = env('POSTGRES_URL') || env('DATABASE_URL');
-  let consumerKey = '';
-  let consumerSecret = '';
-  let passkey = '';
-  let shortcode = '';
-  let partyB = '';
-  let accountReference = '';
+  // Prefer admin-managed merchant settings, but support Vercel production env vars
+  // so deployments configured through the Vercel dashboard work as expected.
+  let consumerKey = env('MPESA_PAYBILL_CONSUMER_KEY');
+  let consumerSecret = env('MPESA_PAYBILL_CONSUMER_SECRET');
+  let passkey = env('MPESA_PAYBILL_PASSKEY');
+  let shortcode = env('MPESA_PAYBILL_SHORTCODE') || env('MPESA_SHORTCODE');
+  let partyB = env('MPESA_PAYBILL_PARTY_B') || env('PARTY_B');
+  let accountReference = env('MPESA_PAYBILL_ACCOUNT_REFERENCE');
   let sql: ReturnType<typeof neon> | null = dbUrl ? neon(dbUrl) : null;
   if (sql) {
     try {
       const saved = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B','MPESA_PAYBILL_ACCOUNT_REFERENCE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY')` as any[];
       for (const row of saved as any[]) {
-        const value = row.encrypted ? decrypt(String(row.value)) : String(row.value);
-        if (row.key === 'MPESA_PAYBILL_SHORTCODE') shortcode = value;
-        if (row.key === 'MPESA_PAYBILL_PARTY_B') partyB = value;
-        if (row.key === 'MPESA_PAYBILL_ACCOUNT_REFERENCE') accountReference = value;
-        if (row.key === 'MPESA_PAYBILL_CONSUMER_KEY') consumerKey = value;
-        if (row.key === 'MPESA_PAYBILL_CONSUMER_SECRET') consumerSecret = value;
-        if (row.key === 'MPESA_PAYBILL_PASSKEY') passkey = value;
+        try {
+          const value = row.encrypted ? decrypt(String(row.value)) : String(row.value);
+          if (!value.trim()) continue;
+          if (row.key === 'MPESA_PAYBILL_SHORTCODE') shortcode = value;
+          if (row.key === 'MPESA_PAYBILL_PARTY_B') partyB = value;
+          if (row.key === 'MPESA_PAYBILL_ACCOUNT_REFERENCE') accountReference = value;
+          if (row.key === 'MPESA_PAYBILL_CONSUMER_KEY') consumerKey = value;
+          if (row.key === 'MPESA_PAYBILL_CONSUMER_SECRET') consumerSecret = value;
+          if (row.key === 'MPESA_PAYBILL_PASSKEY') passkey = value;
+        } catch (error) {
+          // Keep any valid Vercel environment fallback if a stored setting cannot decrypt.
+          console.warn('A stored merchant PayBill setting could not be decrypted.');
+        }
       }
     } catch (error) { console.warn('Merchant PayBill settings unavailable.'); }
   }
   // Never silently route merchant PayBill checkout to the legacy Till.
-  const accountType = 'CustomerPayBillOnline';
-  const darajaEnv = (env('DARAJA_ENV') || 'production').toLowerCase();
+  const accountType = env('DARAJA_ACCOUNT_TYPE') || env('MPESA_PAYBILL_ACCOUNT_TYPE') || 'CustomerPayBillOnline';
+  const darajaEnv = (env('MPESA_PAYBILL_ENV') || env('DARAJA_ENV') || 'production').toLowerCase();
   const callbackUrl = env('DARAJA_CALLBACK_URL') || env('MPESA_CALLBACK_URL');
 
-  if (!dbUrl || !consumerKey || !consumerSecret || !passkey || !shortcode || !partyB || !accountReference || !callbackUrl) {
-    return json(res, 503, { error: 'Payment service is not fully configured. No payment was initiated.' });
+  const missing: string[] = [];
+  if (!dbUrl) missing.push('POSTGRES_URL');
+  if (!consumerKey) missing.push('MPESA_PAYBILL_CONSUMER_KEY');
+  if (!consumerSecret) missing.push('MPESA_PAYBILL_CONSUMER_SECRET');
+  if (!passkey) missing.push('MPESA_PAYBILL_PASSKEY');
+  if (!shortcode) missing.push('MPESA_PAYBILL_SHORTCODE');
+  if (!partyB) missing.push('MPESA_PAYBILL_PARTY_B');
+  if (!accountReference) missing.push('MPESA_PAYBILL_ACCOUNT_REFERENCE');
+  if (!callbackUrl) missing.push('DARAJA_CALLBACK_URL');
+  if (missing.length) {
+    return json(res, 503, {
+      error: 'Payment service is not fully configured. No payment was initiated.',
+      missingConfiguration: missing
+    });
   }
   if (!/^https:\/\//i.test(callbackUrl)) {
     return json(res, 503, { error: 'A public HTTPS Daraja callback URL is required.' });
