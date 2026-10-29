@@ -41,19 +41,19 @@ jobs:
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: team_Rr4p8wcgsRQR37gS4f4Izg5v
+          VERCEL_PROJECT_ID: prj_b85RDvrApNzcQHMjEjFClAswUopy
 
       - name: Build production artifact
         run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: team_Rr4p8wcgsRQR37gS4f4Izg5v
+          VERCEL_PROJECT_ID: prj_b85RDvrApNzcQHMjEjFClAswUopy
 
       - name: Deploy prebuilt artifact to production
         run: vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: team_Rr4p8wcgsRQR37gS4f4Izg5v
+          VERCEL_PROJECT_ID: prj_b85RDvrApNzcQHMjEjFClAswUopy
