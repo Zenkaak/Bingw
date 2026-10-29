@@ -16,16 +16,20 @@ function normalizePhone(value: unknown): string | null {
   if (/^254[17]\\d{8}$/.test(digits)) return digits;
   return null;
 }
-async function verifyDarajaPayment(sql: any, checkoutId: string): Promise<boolean> {
-  const rows = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY')` as any[];
+async function verifyDarajaPayment(sql: any, checkoutId: string, accountType: string): Promise<boolean> {
+  const rows = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('DARAJA_ACCOUNT_TYPE','MPESA_SHORTCODE','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY','MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY')` as any[];
   const config: Record<string,string> = {};
-  for (const row of rows) config[row.key] = row.encrypted ? decrypt(String(row.value)) : String(row.value);
-  const shortcode = config.MPESA_PAYBILL_SHORTCODE || '';
-  const consumerKey = config.MPESA_PAYBILL_CONSUMER_KEY || '';
-  const consumerSecret = config.MPESA_PAYBILL_CONSUMER_SECRET || '';
-  const passkey = config.MPESA_PAYBILL_PASSKEY || '';
+  for (const row of rows) {
+    try { config[row.key] = row.encrypted ? decrypt(String(row.value)) : String(row.value); }
+    catch { console.warn('A stored Daraja verification setting could not be decrypted.'); }
+  }
+  const isPayBill = accountType === 'CustomerPayBillOnline';
+  const shortcode = (isPayBill ? env('MPESA_PAYBILL_SHORTCODE') || config.MPESA_PAYBILL_SHORTCODE : env('MPESA_SHORTCODE') || config.MPESA_SHORTCODE) || '';
+  const consumerKey = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') : '') || env('MPESA_CONSUMER_KEY') || (isPayBill ? config.MPESA_PAYBILL_CONSUMER_KEY : '') || config.MPESA_CONSUMER_KEY || (!isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') || config.MPESA_PAYBILL_CONSUMER_KEY : '');
+  const consumerSecret = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') : '') || env('MPESA_CONSUMER_SECRET') || (isPayBill ? config.MPESA_PAYBILL_CONSUMER_SECRET : '') || config.MPESA_CONSUMER_SECRET || (!isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') || config.MPESA_PAYBILL_CONSUMER_SECRET : '');
+  const passkey = (isPayBill ? env('MPESA_PAYBILL_PASSKEY') : '') || env('MPESA_PASSKEY') || (isPayBill ? config.MPESA_PAYBILL_PASSKEY : '') || config.MPESA_PASSKEY || (!isPayBill ? env('MPESA_PAYBILL_PASSKEY') || config.MPESA_PAYBILL_PASSKEY : '');
   if (!shortcode || !consumerKey || !consumerSecret || !passkey) return false;
-  const mode = env('DARAJA_ENV').toLowerCase();
+  const mode = (env('DARAJA_ENV') || env('MPESA_PAYBILL_ENV') || 'production').toLowerCase();
   const baseUrl = mode === 'sandbox' || mode === 'development' ? 'https://sandbox.safaricom.co.ke' : 'https://api.safaricom.co.ke';
   const auth = await fetch(baseUrl + '/oauth/v1/generate?grant_type=client_credentials', {
     headers: { Authorization: 'Basic ' + Buffer.from(consumerKey + ':' + consumerSecret).toString('base64') }
@@ -42,10 +46,8 @@ async function verifyDarajaPayment(sql: any, checkoutId: string): Promise<boolea
   });
   if (!response.ok) return false;
   const result: any = await response.json();
-  // Only a provider query result code of zero is treated as completed payment.
   return String(result.ResultCode) === '0';
 }
-
 async function sendMerchantSms(to: string, message: string) {
   const apiToken = env('SMS_OTS_API_TOKEN') || env('OTS_API_TOKEN');
   const senderId = env('SMS_OTS_SENDER_ID') || env('SENDER_ID');
@@ -113,7 +115,7 @@ export default async function handler(req: any, res: any) {
 
     // Match the provider callback to the exact pending order before recording it as paid.
     const matched = await sql`
-      SELECT id::text AS id, offer_title, price::numeric AS price, payment_phone, receiving_phone, status
+      SELECT id::text AS id, offer_title, price::numeric AS price, payment_phone, receiving_phone, status, destination
       FROM public.sales
       WHERE checkout_request_id=${checkoutId}
       LIMIT 1
@@ -130,14 +132,19 @@ export default async function handler(req: any, res: any) {
     }
 
     // Callback payloads are not trusted on their own: query Daraja server-to-server.
-    const providerVerified = await verifyDarajaPayment(sql, checkoutId);
+    const providerVerified = await verifyDarajaPayment(sql, checkoutId, String(sale.destination || env('DARAJA_ACCOUNT_TYPE') || 'CustomerPayBillOnline'));
     if (!providerVerified) {
       await sql`UPDATE public.sales SET status=CASE WHEN status='completed' THEN status ELSE 'pending_verification' END, result_desc='Daraja STK query has not confirmed completion; payment held for reconciliation', updated_at=NOW() WHERE id::text=${String(sale.id)} AND status<>'completed'`;
       return res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted for provider verification' });
     }
 
     const settings = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key='MERCHANT_NOTIFICATION_PHONE' LIMIT 1` as any[];
-    const notificationPhone = settings.length ? normalizePhone(settings[0].encrypted ? decrypt(String(settings[0].value)) : String(settings[0].value)) : null;
+    let notificationValue = env('MERCHANT_NOTIFICATION_PHONE');
+    if (settings.length) {
+      try { notificationValue = (settings[0].encrypted ? decrypt(String(settings[0].value)) : String(settings[0].value)) || notificationValue; }
+      catch { console.warn('Stored merchant notification phone could not be decrypted; environment fallback retained.'); }
+    }
+    const notificationPhone = normalizePhone(notificationValue);
 
     // One unique outbox row per order prevents repeated callbacks sending duplicate order alerts.
     await sql`CREATE TABLE IF NOT EXISTS public.merchant_sms_outbox (
