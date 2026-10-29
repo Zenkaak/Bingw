@@ -56,7 +56,7 @@ export default function App() {
     setNotice('');
     try {
       const licenseResponse = await fetch('/api/license',{cache:'no-store'});
-      if(licenseResponse.ok){const license=await licenseResponse.json();setLicenseInfo(license);if(license.locked)throw new Error('This website has used its 3 test purchases. Please contact the site owner to renew the license.');}
+      if(licenseResponse.ok){const license=await licenseResponse.json();setLicenseInfo(license);if(license.locked)throw new Error('Sorry, purchases are temporarily unavailable. Please try again later.');}
       const response = await fetch('/api/mpesa/stkpush', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,7 +156,6 @@ export default function App() {
       </section>
       <section className="trust-strip" style={{display:"none"}}><div><strong>One clear catalogue</strong><span>Browse all active offers</span></div><div><strong>Know the validity</strong><span>Details shown up front</span></div><div><strong>Choose your bundle</strong><span>Simple payment</span></div></section>
       <section className="offers-section" id="offers" style={{paddingTop:2}}>
-        {licenseInfo?.locked&&<div role="alert" style={{margin:'0 0 12px',padding:'14px 16px',border:'1px solid #f2c6c3',borderRadius:13,background:'#fff4f3',color:'#8f2520'}}><strong style={{display:'block',fontSize:14}}>Purchases temporarily locked</strong><span style={{display:'block',fontSize:12,lineHeight:1.6,marginTop:5}}>This website has completed its three test purchases. The site owner must renew the license for KES 1,000 from the admin dashboard to restore normal purchases.</span></div>}
         
         <div className="hero-search catalog-search" style={{marginBottom:5,padding:"5px 8px",minHeight:34}}><input aria-label="Filter offers" placeholder="Filter offers..." value={search} onChange={e => setSearch(e.target.value)}/></div>
         <div id="categories" className="categories" style={{marginBottom:5,gap:5}}>{groups.map(item => <button key={item.key} className={group === item.key ? 'category active' : 'category'} onClick={() => setGroup(item.key)}>{item.label}</button>)}</div>
@@ -164,7 +163,7 @@ export default function App() {
         {!loading && error && <div className="empty-state">{error} <button className="category active" onClick={() => void loadOffers()}>Retry</button></div>}
         {!loading && !error && <div className="deal-grid">{filtered.map((offer, index) => <article className="deal-card" key={offer.id} style={{minHeight:0,height:"auto",alignSelf:"start"}}>
           <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`} style={{height:0,minHeight:0,padding:0,display:"none"}}></div>
-          <div className="deal-details" style={{padding:8}}><h3 style={{margin:"0 0 2px",fontSize:14,lineHeight:1.2}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:2,fontSize:11,lineHeight:1.15}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,width:"100%",minHeight:34,padding:"6px 8px",background:"linear-gradient(135deg,#f0faf2,#e1f4e6)",color:"#145c32",border:"1px solid #75bd8a",borderRadius:9,fontWeight:850,fontSize:12,cursor:"pointer",marginTop:6,boxShadow:"0 2px 6px rgba(17,80,43,.08)"}} onClick={() => { setCheckoutPhone(''); setCheckoutRecipientPhone(''); setForAnother(false); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy||Boolean(licenseInfo?.locked)}><span aria-hidden="true" style={{color:"#16803f",fontSize:15,lineHeight:1}}>▣</span>{licenseInfo?.locked?'Purchases locked':'Buy package'}</button></div>
+          <div className="deal-details" style={{padding:8}}><h3 style={{margin:"0 0 2px",fontSize:14,lineHeight:1.2}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:2,fontSize:11,lineHeight:1.15}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,width:"100%",minHeight:34,padding:"6px 8px",background:"linear-gradient(135deg,#f0faf2,#e1f4e6)",color:"#145c32",border:"1px solid #75bd8a",borderRadius:9,fontWeight:850,fontSize:12,cursor:"pointer",marginTop:6,boxShadow:"0 2px 6px rgba(17,80,43,.08)"}} onClick={() => { setCheckoutPhone(''); setCheckoutRecipientPhone(''); setForAnother(false); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}><span aria-hidden="true" style={{color:"#16803f",fontSize:15,lineHeight:1}}>▣</span>Buy package</button></div>
         </article>)}</div>}
         {!loading && !error && filtered.length === 0 && <div className="empty-state">No offers match your search. Try another word or category.</div>}
       </section>
