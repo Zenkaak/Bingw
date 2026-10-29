@@ -115,7 +115,7 @@ export default async function handler(req: any, res: any) {
         if (key === 'MPESA_SHORTCODE' && !/^\d{5,7}$/.test(value)) return send(res,400,{error:'M-PESA shortcode must be 5–7 digits.'});
         if (['PARTY_B','MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B'].includes(key) && !/^\d{5,7}$/.test(value)) return send(res,400,{error:'Till and PayBill shortcode fields must be 5–7 digits.'});
         if (key === 'MERCHANT_NOTIFICATION_PHONE' && !/^(?:0[17]\d{8}|254[17]\d{8})$/.test(value.replace(/[\s+()-]/g,''))) return send(res,400,{error:'Enter a valid Kenyan notification phone number.'});
-        if (key === 'MPESA_PAYBILL_ACCOUNT_REFERENCE' && (value.length < 1 || value.length > 32 || !/^[A-Za-z0-9_{}-]+$/.test(value) || /\{(?!phone\}|order\})/.test(value))) return send(res,400,{error:'Account reference may contain letters, numbers, hyphens, underscores, {phone} or {order}.'});
+        if (key === 'MPESA_PAYBILL_ACCOUNT_REFERENCE' && (value.length < 1 || value.length > 12 || !/^[A-Za-z0-9_-]+$/.test(value))) return send(res,400,{error:'Merchant account reference must be 1–12 letters, numbers, hyphens, or underscores.'});
         const secret=['MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY'].includes(key);
         const stored=secret ? encrypt(value) : value;
         await sql`INSERT INTO public.admin_settings (key,value,encrypted,updated_at) VALUES (${key},${stored},${secret},now()) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value,encrypted=EXCLUDED.encrypted,updated_at=now()`;
