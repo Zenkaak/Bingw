@@ -141,30 +141,30 @@ export default function App() {
     </main>
     <footer className="footer" style={{padding:"12px 0",marginTop:12}}><span>{businessName}</span></footer>
     <a href="https://wa.me/254769252572" target="_blank" rel="noreferrer" aria-label="Chat with BLACK HOLE DATA SERVICES on WhatsApp" style={{position:"fixed",right:16,bottom:24,zIndex:900,width:56,height:56,borderRadius:"50%",background:"#25D366",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(0,0,0,.25)",textDecoration:"none",fontSize:28,fontWeight:700}}><span aria-hidden="true">☎</span></a>
-    {checkoutOffer && <div role="dialog" aria-modal="true" aria-labelledby="checkout-title" onClick={(event) => { if (event.target === event.currentTarget && !checkoutBusy) setCheckoutOffer(null); }} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(10,18,16,.68)",backdropFilter:"blur(5px)",display:"grid",placeItems:"center",padding:16}}>
-      <form onSubmit={(event) => { event.preventDefault(); void beginCheckout(checkoutOffer); }} style={{position:"relative",width:"100%",maxWidth:410,maxHeight:"88dvh",overflowY:"auto",boxSizing:"border-box",background:"#fff",color:"#14231d",padding:0,borderRadius:22,boxShadow:"0 28px 90px rgba(0,0,0,.32)"}}>
-        <div style={{background:"linear-gradient(135deg,#102b20,#174d36)",color:"#fff",padding:"20px 22px",borderRadius:"21px 21px 0 0"}}>
+    {checkoutOffer && <div role="dialog" aria-modal="true" aria-labelledby="checkout-title" onClick={(event) => { if (event.target === event.currentTarget && !checkoutBusy) setCheckoutOffer(null); }} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(10,18,16,.68)",backdropFilter:"blur(5px)",display:"grid",placeItems:"center",padding:"max(8px, env(safe-area-inset-top)) 10px max(8px, env(safe-area-inset-bottom))"}}>
+      <form onSubmit={(event) => { event.preventDefault(); void beginCheckout(checkoutOffer); }} style={{position:"relative",width:"100%",maxWidth:390,maxHeight:"min(90dvh, 760px)",overflowY:"auto",overscrollBehavior:"contain",boxSizing:"border-box",background:"#fff",color:"#14231d",padding:0,borderRadius:18,boxShadow:"0 24px 70px rgba(0,0,0,.32)"}}>
+        <div style={{background:"linear-gradient(135deg,#102b20,#174d36)",color:"#fff",padding:"16px 18px",borderRadius:"17px 17px 0 0"}}>
           <button type="button" aria-label="Close checkout" disabled={checkoutBusy} onClick={() => setCheckoutOffer(null)} style={{position:"absolute",right:16,top:16,width:36,height:36,borderRadius:"50%",border:"1px solid rgba(255,255,255,.28)",background:"rgba(255,255,255,.1)",color:"#fff",fontSize:22}}>×</button>
           <div style={{fontSize:10,fontWeight:800,letterSpacing:2,marginBottom:10}}>{businessName}</div>
           <div style={{fontSize:13,opacity:.8,marginBottom:5}}>PACKAGE CHECKOUT</div>
-          <h2 id="checkout-title" style={{fontSize:24,lineHeight:1.2,margin:"0 42px 10px 0"}}>{checkoutOffer.title}</h2>
-          <div style={{fontSize:30,fontWeight:850}}>KSh {Number(checkoutOffer.price).toLocaleString('en-KE')}</div>
+          <h2 id="checkout-title" style={{fontSize:21,lineHeight:1.2,margin:"0 42px 8px 0"}}>{checkoutOffer.title}</h2>
+          <div style={{fontSize:27,fontWeight:850}}>KSh {Number(checkoutOffer.price).toLocaleString('en-KE')}</div>
         </div>
-        <div style={{padding:22}}>
+        <div style={{padding:16}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,padding:12,background:"#f2f7f4",border:"1px solid #dcebe1",borderRadius:12}}>
             <span style={{display:"grid",placeItems:"center",width:38,height:38,flexShrink:0,borderRadius:10,background:"#d9f5e3",color:"#116b3b",fontSize:20}}>▣</span>
             <div><div style={{fontSize:14,fontWeight:750}}>Pay with M-PESA</div><div style={{fontSize:12,color:"#5d6b63",marginTop:3}}>We'll send a payment prompt to your phone.</div></div>
           </div>
           <label htmlFor="mpesa-phone" style={{display:"block",fontSize:13,fontWeight:750,marginBottom:8}}>Your M-PESA phone number (payment)</label>
-          <input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0712 345 678" value={checkoutPhone} onChange={event => setCheckoutPhone(event.target.value)} required style={{display:"block",width:"100%",minHeight:52,padding:"13px 14px",border:"1px solid #cbd6cf",borderRadius:11,boxSizing:"border-box",fontSize:17,background:"#fff",color:"#14231d"}} />
+          <input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0712 345 678" value={checkoutPhone} onChange={event => setCheckoutPhone(event.target.value)} required style={{display:"block",width:"100%",minHeight:46,padding:"11px 12px",border:"1px solid #cbd6cf",borderRadius:11,boxSizing:"border-box",fontSize:17,background:"#fff",color:"#14231d"}} />
           <div style={{fontSize:12,color:"#64736a",marginTop:7}}>Enter the number that should receive the M-PESA payment prompt. Never share your M-PESA PIN.</div>
-          <button type="button" onClick={() => { setForAnother(v => !v); setCheckoutRecipientPhone(''); setNotice(''); }} disabled={checkoutBusy} style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",minHeight:42,marginTop:12,background:forAnother?"#edf8f0":"#fff",color:"#116b3b",border:"1px solid #8dc5a0",borderRadius:11,fontWeight:800,fontSize:14,cursor:"pointer"}}>{forAnother ? "Buying for another person ✓" : "Buy for another person"}</button>
+          <button type="button" onClick={() => { setForAnother(v => !v); setCheckoutRecipientPhone(''); setNotice(''); }} disabled={checkoutBusy} style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",minHeight:38,marginTop:10,background:forAnother?"#edf8f0":"#fff",color:"#116b3b",border:"1px solid #8dc5a0",borderRadius:11,fontWeight:800,fontSize:14,cursor:"pointer"}}>{forAnother ? "Buying for another person ✓" : "Buy for another person"}</button>
           {forAnother && <div style={{marginTop:14}}>
             <label htmlFor="recipient-phone" style={{display:"block",fontSize:13,fontWeight:750,marginBottom:8}}>Recipient phone number</label>
             <input id="recipient-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0712 345 678" value={checkoutRecipientPhone} onChange={event => setCheckoutRecipientPhone(event.target.value)} required style={{display:"block",width:"100%",minHeight:52,padding:"13px 14px",border:"1px solid #cbd6cf",borderRadius:11,boxSizing:"border-box",fontSize:17,background:"#fff",color:"#14231d"}} />
             <div style={{fontSize:12,color:"#64736a",marginTop:7}}>The bundle will be sent to this number after payment is verified.</div>
           </div>}
-          <button type="submit" disabled={checkoutBusy} style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",minHeight:52,marginTop:18,background:checkoutBusy?"#7a8a80":"#116b3b",color:"#fff",border:0,borderRadius:11,fontWeight:800,fontSize:16,cursor:checkoutBusy?"wait":"pointer"}}>{checkoutBusy ? "Sending STK prompt…" : "Pay with M-PESA →"}</button>
+          <button type="submit" disabled={checkoutBusy} style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",minHeight:46,marginTop:14,background:checkoutBusy?"#7a8a80":"#116b3b",color:"#fff",border:0,borderRadius:11,fontWeight:800,fontSize:16,cursor:checkoutBusy?"wait":"pointer"}}>{checkoutBusy ? "Sending STK prompt…" : "Pay with M-PESA →"}</button>
           {notice && <p role="status" style={{fontSize:13,lineHeight:1.5,color:notice.startsWith("Prompt has been sent")?"#116b3b":"#a32929",background:notice.startsWith("Prompt has been sent")?"#edf9f0":"#fff3f2",borderRadius:9,padding:11,margin:"14px 0 0"}}>{notice}</p>}
           <div style={{textAlign:"center",fontSize:11,color:"#7a877f",marginTop:14}}>Secure payment request · KSh pricing</div>
         </div>
