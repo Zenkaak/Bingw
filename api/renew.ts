@@ -40,8 +40,7 @@ export default async function handler(req: any, res: any) {
     if (!auth.access_token) return json(res,502,{error:'M-PESA did not return an access token.'});
     await sql`CREATE TABLE IF NOT EXISTS public.site_license (id text PRIMARY KEY DEFAULT 'site', purchase_count integer NOT NULL DEFAULT 0, is_active boolean NOT NULL DEFAULT true, updated_at timestamptz NOT NULL DEFAULT now())`;
     await sql`INSERT INTO public.site_license (id,purchase_count,is_active) VALUES ('site',0,true) ON CONFLICT (id) DO NOTHING`;
-    const licenseRows = await sql`SELECT purchase_count,is_active FROM public.site_license WHERE id='site' LIMIT 1` as any[];
-    if (licenseRows[0]?.is_active && Number(licenseRows[0]?.purchase_count || 0) < 3) return json(res,409,{error:'The site license is still active. Renewal becomes available after three successful test purchases.'});
+    // Renewal is intentionally available at any time, including before the three trial purchases are used.
     await sql`CREATE TABLE IF NOT EXISTS public.site_renewals (id uuid PRIMARY KEY, checkout_request_id text UNIQUE, phone text NOT NULL, amount integer NOT NULL DEFAULT 1000, status text NOT NULL DEFAULT 'initiating', mpesa_receipt text, result_desc text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`;
     const renewalId = crypto.randomUUID();
     await sql`INSERT INTO public.site_renewals (id,phone,amount,status) VALUES (${renewalId}::uuid,${phone},1000,'initiating')`;
