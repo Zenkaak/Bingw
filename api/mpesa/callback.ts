@@ -11,9 +11,9 @@ function decrypt(value: string) {
   return Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]).toString('utf8');
 }
 function normalizePhone(value: unknown): string | null {
-  const digits = String(value ?? '').replace(/[\\s+()-]/g, '');
-  if (/^0[17]\\d{8}$/.test(digits)) return '254' + digits.slice(1);
-  if (/^254[17]\\d{8}$/.test(digits)) return digits;
+  const digits = String(value ?? '').replace(/[\s+()-]/g, '');
+  if (/^0[17]\d{8}$/.test(digits)) return '254' + digits.slice(1);
+  if (/^254[17]\d{8}$/.test(digits)) return digits;
   return null;
 }
 async function verifyDarajaPayment(sql: any, checkoutId: string, accountType: string): Promise<boolean> {
