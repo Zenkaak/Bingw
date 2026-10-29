@@ -34,7 +34,7 @@ export default async function handler(req: any, res: any) {
   let sql: ReturnType<typeof neon> | null = dbUrl ? neon(dbUrl) : null;
   if (sql) {
     try {
-      const saved = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY')`;
+      const saved = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY')` as any[];
       for (const row of saved as any[]) {
         const value = row.encrypted ? decrypt(String(row.value)) : String(row.value);
         if (row.key === 'MPESA_SHORTCODE') shortcode = value;
@@ -79,7 +79,7 @@ export default async function handler(req: any, res: any) {
       FROM public.deals
       WHERE id::text = ${offerId} AND active = true
       LIMIT 1
-    `;
+    ` as any[];
     if (!offers.length) return json(res, 404, { error: 'This offer is unavailable.' });
     const offer = offers[0];
     const amount = Math.round(Number(offer.price));
