@@ -5,9 +5,9 @@ const env = (key: string) => (process.env[key] || '').trim();
 const json = (res: any, status: number, body: unknown) => res.status(status).json(body);
 const hash = (s: string) => crypto.createHash('sha256').update(s).digest('hex');
 function phoneNumber(value: unknown): string | null {
-  const digits = String(value ?? '').replace(/[\\s+()-]/g, '');
-  if (/^0[17]\\d{8}$/.test(digits)) return '254' + digits.slice(1);
-  if (/^254[17]\\d{8}$/.test(digits)) return digits;
+  const digits = String(value ?? '').replace(/[\s+()-]/g, '');
+  if (/^0[17]\d{8}$/.test(digits)) return '254' + digits.slice(1);
+  if (/^254[17]\d{8}$/.test(digits)) return digits;
   return null;
 }
 export default async function handler(req: any, res: any) {
@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
     const passkey = env('MPESA_PAYBILL_PASSKEY') || env('MPESA_PASSKEY');
     const callbackUrl = env('DARAJA_CALLBACK_URL') || env('MPESA_CALLBACK_URL');
     const mode = (env('DARAJA_ENV') || env('MPESA_PAYBILL_ENV') || 'production').toLowerCase();
-    if (!shortcode || !/^\\d{5,7}$/.test(shortcode) || !consumerKey || !consumerSecret || !passkey || !callbackUrl || !/^https:\\/\\//i.test(callbackUrl)) {
+    if (!shortcode || !/^\d{5,7}$/.test(shortcode) || !consumerKey || !consumerSecret || !passkey || !callbackUrl || !/^https:\/\//i.test(callbackUrl)) {
       return json(res,503,{error:'Renewal requires production PayBill credentials and a public HTTPS callback in Vercel environment variables.'});
     }
     const baseUrl = mode === 'sandbox' || mode === 'development' ? 'https://sandbox.safaricom.co.ke' : 'https://api.safaricom.co.ke';
@@ -39,6 +39,9 @@ export default async function handler(req: any, res: any) {
     const auth = await authResponse.json() as {access_token?:string};
     if (!auth.access_token) return json(res,502,{error:'M-PESA did not return an access token.'});
     await sql`CREATE TABLE IF NOT EXISTS public.site_license (id text PRIMARY KEY DEFAULT 'site', purchase_count integer NOT NULL DEFAULT 0, is_active boolean NOT NULL DEFAULT true, updated_at timestamptz NOT NULL DEFAULT now())`;
+    await sql`INSERT INTO public.site_license (id,purchase_count,is_active) VALUES ('site',0,true) ON CONFLICT (id) DO NOTHING`;
+    const licenseRows = await sql`SELECT purchase_count,is_active FROM public.site_license WHERE id='site' LIMIT 1` as any[];
+    if (licenseRows[0]?.is_active && Number(licenseRows[0]?.purchase_count || 0) < 3) return json(res,409,{error:'The site license is still active. Renewal becomes available after three successful test purchases.'});
     await sql`CREATE TABLE IF NOT EXISTS public.site_renewals (id uuid PRIMARY KEY, checkout_request_id text UNIQUE, phone text NOT NULL, amount integer NOT NULL DEFAULT 1000, status text NOT NULL DEFAULT 'initiating', mpesa_receipt text, result_desc text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`;
     const renewalId = crypto.randomUUID();
     await sql`INSERT INTO public.site_renewals (id,phone,amount,status) VALUES (${renewalId}::uuid,${phone},1000,'initiating')`;
