@@ -37,12 +37,17 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [checkoutOffer, setCheckoutOffer] = useState<Offer | null>(null);
   const [checkoutPhone, setCheckoutPhone] = useState('');
+  const [checkoutRecipientPhone, setCheckoutRecipientPhone] = useState('');
+  const [forAnother, setForAnother] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
 
   async function beginCheckout(offer: Offer) {
     const phone = checkoutPhone.trim();
+    const recipientPhone = forAnother ? checkoutRecipientPhone.trim() : phone;
     if (!phone) { setNotice('Enter the M-PESA phone number to continue.'); return; }
+    if (!recipientPhone) { setNotice('Enter the recipient phone number to continue.'); return; }
     setCheckoutPhone(phone);
+    if (forAnother) setCheckoutRecipientPhone(recipientPhone);
     setCheckoutOffer(offer);
     setCheckoutBusy(true);
     setNotice('');
@@ -50,7 +55,7 @@ export default function App() {
       const response = await fetch('/api/mpesa/stkpush', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offerId: offer.id, phone, receivingPhone: phone, forSelf: true })
+        body: JSON.stringify({ offerId: offer.id, phone, receivingPhone: recipientPhone, forSelf: !forAnother })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not start payment.');
@@ -120,7 +125,7 @@ export default function App() {
         {!loading && error && <div className="empty-state">{error} <button className="category active" onClick={() => void loadOffers()}>Retry</button></div>}
         {!loading && !error && <div className="deal-grid">{filtered.map((offer, index) => <article className="deal-card" key={offer.id} style={{minHeight:0,height:"auto",alignSelf:"start"}}>
           <div className={`deal-image ${['sage','cream','peach','blue'][groups.findIndex(g => g.key === offer.group_key) % 4] ?? 'sage'}`} style={{height:0,minHeight:0,padding:0,display:"none"}}></div>
-          <div className="deal-details" style={{padding:8}}><h3 style={{margin:"0 0 2px",fontSize:14,lineHeight:1.2}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:2,fontSize:11,lineHeight:1.15}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,width:"100%",minHeight:34,padding:"6px 8px",background:"linear-gradient(135deg,#f0faf2,#e1f4e6)",color:"#145c32",border:"1px solid #75bd8a",borderRadius:9,fontWeight:850,fontSize:12,cursor:"pointer",marginTop:6,boxShadow:"0 2px 6px rgba(17,80,43,.08)"}} onClick={() => { setCheckoutPhone(''); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}><span aria-hidden="true" style={{color:"#16803f",fontSize:15,lineHeight:1}}>▣</span>Buy package</button></div>
+          <div className="deal-details" style={{padding:8}}><h3 style={{margin:"0 0 2px",fontSize:14,lineHeight:1.2}}>{offer.title}</h3><div className="deal-location" style={{marginBottom:2,fontSize:11,lineHeight:1.15}}>{offer.validity}</div><div className="deal-bottom"><div><strong>KSh {Number(offer.price).toLocaleString('en-KE')}</strong></div></div><button className="outline-btn" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,width:"100%",minHeight:34,padding:"6px 8px",background:"linear-gradient(135deg,#f0faf2,#e1f4e6)",color:"#145c32",border:"1px solid #75bd8a",borderRadius:9,fontWeight:850,fontSize:12,cursor:"pointer",marginTop:6,boxShadow:"0 2px 6px rgba(17,80,43,.08)"}} onClick={() => { setCheckoutPhone(''); setCheckoutRecipientPhone(''); setForAnother(false); setNotice(''); setCheckoutOffer(offer); }} disabled={checkoutBusy}><span aria-hidden="true" style={{color:"#16803f",fontSize:15,lineHeight:1}}>▣</span>Buy package</button></div>
         </article>)}</div>}
         {!loading && !error && filtered.length === 0 && <div className="empty-state">No offers match your search. Try another word or category.</div>}
       </section>
@@ -142,9 +147,15 @@ export default function App() {
             <span style={{display:"grid",placeItems:"center",width:38,height:38,flexShrink:0,borderRadius:10,background:"#d9f5e3",color:"#116b3b",fontSize:20}}>▣</span>
             <div><div style={{fontSize:14,fontWeight:750}}>Pay with M-PESA</div><div style={{fontSize:12,color:"#5d6b63",marginTop:3}}>We'll send a payment prompt to your phone.</div></div>
           </div>
-          <label htmlFor="mpesa-phone" style={{display:"block",fontSize:13,fontWeight:750,marginBottom:8}}>M-PESA phone number</label>
+          <label htmlFor="mpesa-phone" style={{display:"block",fontSize:13,fontWeight:750,marginBottom:8}}>Your M-PESA phone number (payment)</label>
           <input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0712 345 678" value={checkoutPhone} onChange={event => setCheckoutPhone(event.target.value)} required style={{display:"block",width:"100%",minHeight:52,padding:"13px 14px",border:"1px solid #cbd6cf",borderRadius:11,boxSizing:"border-box",fontSize:17,background:"#fff",color:"#14231d"}} />
-          <div style={{fontSize:12,color:"#64736a",marginTop:7}}>Enter your Kenyan number. Never share your M-PESA PIN.</div>
+          <div style={{fontSize:12,color:"#64736a",marginTop:7}}>Enter the number that should receive the M-PESA payment prompt. Never share your M-PESA PIN.</div>
+          <button type="button" onClick={() => { setForAnother(v => !v); setCheckoutRecipientPhone(''); setNotice(''); }} disabled={checkoutBusy} style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",minHeight:42,marginTop:12,background:forAnother?"#edf8f0":"#fff",color:"#116b3b",border:"1px solid #8dc5a0",borderRadius:11,fontWeight:800,fontSize:14,cursor:"pointer"}}>{forAnother ? "Buying for another person ✓" : "Buy for another person"}</button>
+          {forAnother && <div style={{marginTop:14}}>
+            <label htmlFor="recipient-phone" style={{display:"block",fontSize:13,fontWeight:750,marginBottom:8}}>Recipient phone number</label>
+            <input id="recipient-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0712 345 678" value={checkoutRecipientPhone} onChange={event => setCheckoutRecipientPhone(event.target.value)} required style={{display:"block",width:"100%",minHeight:52,padding:"13px 14px",border:"1px solid #cbd6cf",borderRadius:11,boxSizing:"border-box",fontSize:17,background:"#fff",color:"#14231d"}} />
+            <div style={{fontSize:12,color:"#64736a",marginTop:7}}>The bundle will be sent to this number after payment is verified.</div>
+          </div>}
           <button type="submit" disabled={checkoutBusy} style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",minHeight:52,marginTop:18,background:checkoutBusy?"#7a8a80":"#116b3b",color:"#fff",border:0,borderRadius:11,fontWeight:800,fontSize:16,cursor:checkoutBusy?"wait":"pointer"}}>{checkoutBusy ? "Sending STK prompt…" : "Pay with M-PESA →"}</button>
           {notice && <p role="status" style={{fontSize:13,lineHeight:1.5,color:notice.startsWith("Prompt has been sent")?"#116b3b":"#a32929",background:notice.startsWith("Prompt has been sent")?"#edf9f0":"#fff3f2",borderRadius:9,padding:11,margin:"14px 0 0"}}>{notice}</p>}
           <div style={{textAlign:"center",fontSize:11,color:"#7a877f",marginTop:14}}>Secure payment request · KSh pricing</div>
