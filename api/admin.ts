@@ -102,15 +102,18 @@ export default async function handler(req: any, res: any) {
       return send(res,200,{ok:true});
     }
     if (action === 'settings' && req.method === 'GET') {
-      const rows=await sql`SELECT key,encrypted,updated_at FROM public.admin_settings ORDER BY key`;
-      return send(res,200,{settings:rows.map((r:any)=>({key:r.key,configured:true,updated_at:r.updated_at}))});
+      const rows=await sql`SELECT key,value,encrypted,updated_at FROM public.admin_settings ORDER BY key`;
+      const accountTypeRow=rows.find((r:any)=>r.key==='DARAJA_ACCOUNT_TYPE');
+      const accountType=accountTypeRow && !accountTypeRow.encrypted ? String(accountTypeRow.value) : (env('DARAJA_ACCOUNT_TYPE') || env('MPESA_PAYBILL_ACCOUNT_TYPE') || 'CustomerPayBillOnline');
+      return send(res,200,{settings:rows.map((r:any)=>({key:r.key,configured:true,updated_at:r.updated_at})),accountType});
     }
     if (action === 'settings' && req.method === 'POST') {
-      const allowed = ['BUSINESS_NAME','MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY','MERCHANT_NOTIFICATION_PHONE','MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B','MPESA_PAYBILL_ACCOUNT_REFERENCE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY'];
+      const allowed = ['BUSINESS_NAME','DARAJA_ACCOUNT_TYPE','MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY','MERCHANT_NOTIFICATION_PHONE','MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B','MPESA_PAYBILL_ACCOUNT_REFERENCE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY'];
       const values=body.values || {};
       for (const key of allowed) {
         if (values[key] === undefined || values[key] === '') continue;
         const value=String(values[key]).trim();
+        if (key === 'DARAJA_ACCOUNT_TYPE' && !['CustomerBuyGoodsOnline','CustomerPayBillOnline'].includes(value)) return send(res,400,{error:'Select CustomerBuyGoodsOnline or CustomerPayBillOnline.'});
         if (key === 'BUSINESS_NAME' && (value.length < 2 || value.length > 100)) return send(res,400,{error:'Business name must be between 2 and 100 characters.'});
         if (key === 'MPESA_SHORTCODE' && !/^\d{5,7}$/.test(value)) return send(res,400,{error:'M-PESA shortcode must be 5–7 digits.'});
         if (['PARTY_B','MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B'].includes(key) && !/^\d{5,7}$/.test(value)) return send(res,400,{error:'Till and PayBill shortcode fields must be 5–7 digits.'});
