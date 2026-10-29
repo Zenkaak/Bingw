@@ -12,9 +12,9 @@ function decrypt(value: string) {
   return Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]).toString('utf8');
 }
 function phoneNumber(value: unknown): string | null {
-  const digits = String(value ?? '').replace(/[\\s+()-]/g, '');
-  if (/^0[17]\\d{8}$/.test(digits)) return '254' + digits.slice(1);
-  if (/^254[17]\\d{8}$/.test(digits)) return digits;
+  const digits = String(value ?? '').replace(/[\s+()-]/g, '');
+  if (/^0[17]\d{8}$/.test(digits)) return '254' + digits.slice(1);
+  if (/^254[17]\d{8}$/.test(digits)) return digits;
   return null;
 }
 async function readSettings(sql: any) {
@@ -79,7 +79,6 @@ export default async function handler(req: any, res: any) {
   if (!/^\\d{5,7}$/.test(shortcode) || !/^\\d{5,7}$/.test(partyB)) return json(res, 503, { error: 'The configured merchant shortcode or Party B is invalid.' });
   if (!['production', 'live', 'sandbox', 'development'].includes(darajaEnv)) return json(res, 503, { error: 'Invalid Daraja environment setting.' });
 
-  const { offerId, phone, receivingPhone, forSelf = true } = req.body || {};
   const customerPhone = phoneNumber(phone);
   const destinationPhone = phoneNumber(receivingPhone || phone);
   if (!offerId || typeof offerId !== 'string' || offerId.length > 100 || !customerPhone || !destinationPhone) return json(res, 400, { error: 'Provide a valid offer and Kenyan phone number.' });
@@ -111,7 +110,14 @@ export default async function handler(req: any, res: any) {
     const stkResponse = await fetch(baseUrl + '/mpesa/stkpush/v1/processrequest', {
       method: 'POST', headers: { Authorization: 'Bearer ' + auth.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     });
-    const stk = await stkResponse.json() as { ResponseCode?: string; ResponseDescription?: string; CustomerMessage?: string; CheckoutRequestID?: string; MerchantRequestID?: string; errorMessage?: string };
+    const stkRaw = await stkResponse.text();
+    let stk: { ResponseCode?: string; ResponseDescription?: string; CustomerMessage?: string; CheckoutRequestID?: string; MerchantRequestID?: string; errorMessage?: string };
+    try { stk = JSON.parse(stkRaw); }
+    catch {
+      console.error('Daraja STK returned a non-JSON response', JSON.stringify({ httpStatus: stkResponse.status, contentType: stkResponse.headers.get('content-type'), bodyStart: stkRaw.slice(0, 180) }));
+      await sql`UPDATE public.sales SET status='failed',result_desc=${'Daraja returned a non-JSON response (HTTP ' + stkResponse.status + ').'},updated_at=NOW() WHERE id=${saleId}::uuid`;
+      return json(res, 502, { error: 'M-PESA gateway returned an invalid response. No confirmed STK request was received; check Daraja account configuration and server logs.', paymentInitiated: false });
+    }
     if (!stkResponse.ok || stk.ResponseCode !== '0' || !stk.CheckoutRequestID) {
       await sql`UPDATE public.sales SET status='failed',result_desc=${String(stk.errorMessage || stk.ResponseDescription || 'STK request failed').slice(0,500)},updated_at=NOW() WHERE id=${saleId}::uuid`;
       console.error('Daraja STK request failed', JSON.stringify({ httpStatus: stkResponse.status, responseCode: stk.ResponseCode, responseDescription: stk.ResponseDescription, errorMessage: stk.errorMessage }));
