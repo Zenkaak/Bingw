@@ -115,8 +115,12 @@ export default async function handler(req: any, res: any) {
       RETURNING id::text AS id, offer_title, price::numeric AS price, receiving_phone
     ` as any[];
 
-    if (paid.length && notificationPhone) {
-      const order = paid[0];
+    const completedOrder = paid.length ? paid[0] : ((await sql`
+      SELECT id::text AS id, offer_title, price::numeric AS price, receiving_phone, mpesa_receipt
+      FROM public.sales WHERE id::text=${String(sale.id)} AND status='completed' AND mpesa_receipt=${receipt} LIMIT 1
+    ` as any[])[0] || null);
+    if (completedOrder && notificationPhone) {
+      const order = completedOrder;
       const message = [
         'BLACKHOLE DATA SERVICES - ORDER PAYMENT VERIFIED',
         'Order: ' + String(order.id).slice(0, 12),
