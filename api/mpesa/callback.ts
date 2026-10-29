@@ -24,10 +24,10 @@ async function verifyDarajaPayment(sql: any, checkoutId: string, accountType: st
     catch { console.warn('A stored Daraja verification setting could not be decrypted.'); }
   }
   const isPayBill = accountType === 'CustomerPayBillOnline';
-  const shortcode = (isPayBill ? env('MPESA_PAYBILL_SHORTCODE') || config.MPESA_PAYBILL_SHORTCODE : env('MPESA_SHORTCODE') || config.MPESA_SHORTCODE) || '';
-  const consumerKey = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') : '') || env('MPESA_CONSUMER_KEY') || (isPayBill ? config.MPESA_PAYBILL_CONSUMER_KEY : '') || config.MPESA_CONSUMER_KEY || (!isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') || config.MPESA_PAYBILL_CONSUMER_KEY : '');
-  const consumerSecret = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') : '') || env('MPESA_CONSUMER_SECRET') || (isPayBill ? config.MPESA_PAYBILL_CONSUMER_SECRET : '') || config.MPESA_CONSUMER_SECRET || (!isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') || config.MPESA_PAYBILL_CONSUMER_SECRET : '');
-  const passkey = (isPayBill ? env('MPESA_PAYBILL_PASSKEY') : '') || env('MPESA_PASSKEY') || (isPayBill ? config.MPESA_PAYBILL_PASSKEY : '') || config.MPESA_PASSKEY || (!isPayBill ? env('MPESA_PAYBILL_PASSKEY') || config.MPESA_PAYBILL_PASSKEY : '');
+  const shortcode = (isPayBill ? config.MPESA_PAYBILL_SHORTCODE || env('MPESA_PAYBILL_SHORTCODE') || env('MPESA_SHORTCODE') : config.MPESA_SHORTCODE || env('MPESA_SHORTCODE')) || '';
+  const consumerKey = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') : '') || env('MPESA_CONSUMER_KEY') || (isPayBill ? config.MPESA_PAYBILL_CONSUMER_KEY : '') || config.MPESA_CONSUMER_KEY;
+  const consumerSecret = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') : '') || env('MPESA_CONSUMER_SECRET') || (isPayBill ? config.MPESA_PAYBILL_CONSUMER_SECRET : '') || config.MPESA_CONSUMER_SECRET;
+  const passkey = (isPayBill ? env('MPESA_PAYBILL_PASSKEY') : '') || env('MPESA_PASSKEY') || (isPayBill ? config.MPESA_PAYBILL_PASSKEY : '') || config.MPESA_PASSKEY;
   if (!shortcode || !consumerKey || !consumerSecret || !passkey) return false;
   const mode = (env('DARAJA_ENV') || env('MPESA_PAYBILL_ENV') || 'production').toLowerCase();
   const baseUrl = mode === 'sandbox' || mode === 'development' ? 'https://sandbox.safaricom.co.ke' : 'https://api.safaricom.co.ke';
