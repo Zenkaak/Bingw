@@ -77,6 +77,13 @@ export default async function handler(req: any, res: any) {
     }
     if (action === 'session' && req.method === 'GET') return send(res,200,{ok:true,mustChangePassword:user.must_change_password});
     if (user.must_change_password && action !== 'password') return send(res,403,{error:'Change the temporary password first.',mustChangePassword:true});
+    const mutatingAction = (action === 'product' && (req.method === 'POST' || req.method === 'DELETE')) || (action === 'settings' && req.method === 'POST') || (action === 'test-sms' && req.method === 'POST');
+    if (mutatingAction) {
+      await sql`CREATE TABLE IF NOT EXISTS public.site_license (id text PRIMARY KEY DEFAULT 'site', purchase_count integer NOT NULL DEFAULT 0, is_active boolean NOT NULL DEFAULT true, updated_at timestamptz NOT NULL DEFAULT now())`;
+      await sql`INSERT INTO public.site_license (id,purchase_count,is_active) VALUES ('site',0,true) ON CONFLICT (id) DO NOTHING`;
+      const licenseRows = await sql`SELECT purchase_count,is_active FROM public.site_license WHERE id='site' LIMIT 1` as any[];
+      if (!licenseRows[0]?.is_active || Number(licenseRows[0]?.purchase_count || 0) >= 3) return send(res,423,{error:'Site license locked after three successful test purchases. Renew the site license for KES 1,000 to restore updates.'});
+    }
     if (action === 'dashboard' && req.method === 'GET') {
       const [summary, sales] = await Promise.all([
         sql`SELECT count(*)::int AS total_orders, count(*) FILTER (WHERE status IN ('completed','success','successful','paid'))::int AS successful_orders, count(*) FILTER (WHERE status IN ('failed','cancelled','canceled','error'))::int AS failed_orders, COALESCE(sum(price) FILTER (WHERE status IN ('completed','success','successful','paid')),0)::numeric AS sales_total FROM public.sales`,
