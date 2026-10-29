@@ -92,7 +92,7 @@ export default async function handler(req: any, res: any) {
       const {id,group_key,title,price,validity,note,sort_order=0,active=true}=body;
       if (!title || !['bingwa','repeatable','minutes','sms'].includes(group_key) || !Number.isFinite(Number(price)) || Number(price)<=0 || !validity) return send(res,400,{error:'Provide a title, valid category, positive price, and validity.'});
       if (id) await sql`UPDATE public.deals SET group_key=${group_key},title=${String(title).slice(0,120)},price=${Number(price)},validity=${String(validity).slice(0,120)},note=${note ? String(note).slice(0,500) : null},sort_order=${Number(sort_order)||0},active=${Boolean(active)} WHERE id::text=${String(id)}`;
-      else await sql`INSERT INTO public.deals (group_key,title,price,validity,note,sort_order,active) VALUES (${group_key},${String(title).slice(0,120)},${Number(price)},${String(validity).slice(0,120)},${note ? String(note).slice(0,500) : null},${Number(sort_order)||0},${Boolean(active)})`;
+      else await sql`INSERT INTO public.deals (id,group_key,title,price,validity,note,sort_order,active) VALUES (${crypto.randomUUID()},${group_key},${String(title).slice(0,120)},${Number(price)},${String(validity).slice(0,120)},${note ? String(note).slice(0,500) : null},${Number(sort_order)||0},${Boolean(active)})`;
       return send(res,200,{ok:true});
     }
     if (action === 'product' && req.method === 'DELETE') {
