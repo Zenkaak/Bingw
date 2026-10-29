@@ -50,15 +50,15 @@ export default async function handler(req: any, res: any) {
     (isPayBill ? saved.MPESA_PAYBILL_CONSUMER_KEY : saved.MPESA_CONSUMER_KEY);
   const consumerSecret = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') : env('MPESA_CONSUMER_SECRET')) ||
     (isPayBill ? saved.MPESA_PAYBILL_CONSUMER_SECRET : saved.MPESA_CONSUMER_SECRET);
-  const passkey = (isPayBill ? env('MPESA_PAYBILL_PASSKEY') || env('MPESA_PASSKEY') : env('MPESA_PASSKEY')) ||
-    (isPayBill ? saved.MPESA_PAYBILL_PASSKEY || saved.MPESA_PASSKEY : saved.MPESA_PASSKEY);
+  const passkey = (isPayBill ? env('MPESA_PAYBILL_PASSKEY') : env('MPESA_PASSKEY')) ||
+    (isPayBill ? saved.MPESA_PAYBILL_PASSKEY : saved.MPESA_PASSKEY);
   // Merchant destinations are set in Admin > Payout settings; environment values are fallbacks.
   const shortcode = isPayBill
-    ? (saved.MPESA_PAYBILL_SHORTCODE || env('MPESA_PAYBILL_SHORTCODE') || env('MPESA_SHORTCODE'))
+    ? (saved.MPESA_PAYBILL_SHORTCODE || env('MPESA_PAYBILL_SHORTCODE'))
     : (saved.MPESA_SHORTCODE || env('MPESA_SHORTCODE'));
   const partyB = isPayBill
-    ? (saved.MPESA_PAYBILL_PARTY_B || env('MPESA_PAYBILL_PARTY_B') || shortcode)
-    : (saved.PARTY_B || env('PARTY_B') || shortcode);
+    ? (saved.MPESA_PAYBILL_PARTY_B || env('MPESA_PAYBILL_PARTY_B'))
+    : (saved.PARTY_B || env('PARTY_B'));
   const accountReference = isPayBill
     ? (saved.MPESA_PAYBILL_ACCOUNT_REFERENCE || env('MPESA_PAYBILL_ACCOUNT_REFERENCE'))
     : (env('MPESA_ACCOUNT_REFERENCE') || 'BUNDLEBUY');
