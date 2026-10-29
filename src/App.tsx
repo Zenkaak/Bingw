@@ -40,6 +40,7 @@ export default function App() {
   const [checkoutRecipientPhone, setCheckoutRecipientPhone] = useState('');
   const [forAnother, setForAnother] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<{ saleId: string; status: 'pending' | 'success' | 'failed' | 'timeout'; message: string } | null>(null);
 
   async function beginCheckout(offer: Offer) {
     const phone = checkoutPhone.trim();
@@ -49,6 +50,7 @@ export default function App() {
     setCheckoutPhone(phone);
     if (forAnother) setCheckoutRecipientPhone(recipientPhone);
     setCheckoutOffer(offer);
+    setPaymentStatus(null);
     setCheckoutBusy(true);
     setNotice('');
     try {
@@ -67,7 +69,29 @@ export default function App() {
           : 'Invalid response from payment service (' + response.status + '): ' + detail);
       }
       if (!response.ok) throw new Error(result.error || 'Could not start payment.');
-      setNotice('Prompt has been sent to your phone. Check your phone to complete payment.');
+      if (!result.saleId) throw new Error('The payment prompt was requested, but no order reference was returned. Contact support before trying again.');
+      setCheckoutOffer(null);
+      setPaymentStatus({ saleId: result.saleId, status: 'pending', message: 'M-PESA prompt sent. Complete the payment on the payment phone; we are checking the result automatically.' });
+      setNotice('');
+      for (let attempt = 0; attempt < 40; attempt++) {
+        await new Promise(resolve => window.setTimeout(resolve, 3000));
+        try {
+          const statusResponse = await fetch('/api/mpesa/order-status?saleId=' + encodeURIComponent(result.saleId), { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
+          if (!statusResponse.ok) continue;
+          const payment = await statusResponse.json();
+          if (payment.status === 'success') {
+            setPaymentStatus({ saleId: result.saleId, status: 'success', message: 'Your purchase is successful!' });
+            return;
+          }
+          if (payment.status === 'failed') {
+            setPaymentStatus({ saleId: result.saleId, status: 'failed', message: payment.message || 'Payment was not completed. You can start a new purchase.' });
+            return;
+          }
+        } catch { /* Keep polling through temporary network errors. */ }
+      }
+      setPaymentStatus(current => current?.saleId === result.saleId && current.status === 'pending'
+        ? { ...current, status: 'timeout', message: 'We are still waiting for M-PESA confirmation. This is not yet a successful payment; you can check again shortly.' }
+        : current);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Payment could not be started.');
     } finally {
@@ -169,6 +193,18 @@ export default function App() {
           <div style={{textAlign:"center",fontSize:11,color:"#7a877f",marginTop:14}}>Secure payment request · KSh pricing</div>
         </div>
       </form>
+    </div>}
+    {paymentStatus && <div role="dialog" aria-modal="true" aria-live="polite" style={{position:"fixed",inset:0,zIndex:1200,background:"rgba(7,20,13,.88)",backdropFilter:"blur(8px)",display:"grid",placeItems:"center",padding:20,color:"#fff",textAlign:"center"}}>
+      {paymentStatus.status === 'success' && <div aria-hidden="true" style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none"}}>{Array.from({length:90},(_,i)=><span key={i} style={{position:"absolute",left:((i*37)%100)+"%",top:-24,width:7+(i%5),height:10+(i%7),borderRadius:i%3===0?"50%":"2px",background:["#ffd166","#06d6a0","#ef476f","#fff","#118ab2","#f78c6b"][i%6],transform:"rotate("+((i*47)%360)+"deg)",animation:"purchaseBurst "+(1.6+(i%8)*.22)+"s cubic-bezier(.1,.7,.3,1) "+((i%12)*.08)+"s forwards"}} />)}</div>}
+      <div style={{position:"relative",maxWidth:420,width:"100%",padding:"30px 22px",borderRadius:24,background:paymentStatus.status==='success'?"linear-gradient(145deg,#14532d,#166534)":"#fff",color:paymentStatus.status==='success'?"#fff":"#14231d",boxShadow:"0 25px 80px rgba(0,0,0,.35)"}}>
+        <style>{'@keyframes purchaseBurst{0%{transform:translateY(0) rotate(0) scale(.5);opacity:1}100%{transform:translateY(85vh) rotate(720deg) scale(1);opacity:0}}'}</style>
+        <div style={{fontSize:48,marginBottom:12}}>{paymentStatus.status==='success'?'🎉':paymentStatus.status==='failed'?'⚠️':'📲'}</div>
+        <h2 style={{fontSize:25,margin:"0 0 12px"}}>{paymentStatus.status==='success'?'Your purchase is successful!':paymentStatus.status==='failed'?'Payment not completed':paymentStatus.status==='timeout'?'Still confirming payment':'Waiting for payment'}</h2>
+        <p style={{fontSize:15,lineHeight:1.6,margin:"0 0 20px"}}>{paymentStatus.message}</p>
+        {paymentStatus.status==='pending' && <div style={{display:"flex",justifyContent:"center",gap:8,alignItems:"center",fontSize:13,opacity:.9}}><span style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",animation:"brandGlow 1s infinite"}}/>Checking M-PESA status…</div>}
+        {paymentStatus.status==='timeout' && <button onClick={async()=>{const id=paymentStatus.saleId;setPaymentStatus({...paymentStatus,status:'pending',message:'Checking the latest M-PESA status…'});try{const r=await fetch('/api/mpesa/order-status?saleId='+encodeURIComponent(id),{cache:'no-store'});const d=await r.json();if(d.status==='success')setPaymentStatus({saleId:id,status:'success',message:'Your purchase is successful!'});else if(d.status==='failed')setPaymentStatus({saleId:id,status:'failed',message:d.message||'Payment was not completed.'});else setPaymentStatus({saleId:id,status:'timeout',message:'Still waiting for confirmation from M-PESA.'});}catch{setPaymentStatus({...paymentStatus,status:'timeout',message:'Could not reach the status service. Please try again.'});}}} style={{padding:"12px 18px",border:0,borderRadius:12,background:"#176b3b",color:"#fff",fontWeight:800}}>Check payment again</button>}
+        {(paymentStatus.status==='success'||paymentStatus.status==='failed') && <button onClick={()=>setPaymentStatus(null)} style={{marginTop:8,padding:"12px 18px",border:0,borderRadius:12,background:paymentStatus.status==='success'?"#fff":"#176b3b",color:paymentStatus.status==='success'?"#14532d":"#fff",fontWeight:800}}>{paymentStatus.status==='success'?'Continue shopping':'Close'}</button>}
+      </div>
     </div>}
     {notice && <div className="toast" role="status">{notice}<button aria-label="Dismiss notice" onClick={() => setNotice('')}>×</button></div>}
   </div>;
