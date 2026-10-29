@@ -16,6 +16,36 @@ function normalizePhone(value: unknown): string | null {
   if (/^254[17]\\d{8}$/.test(digits)) return digits;
   return null;
 }
+async function verifyDarajaPayment(sql: any, checkoutId: string): Promise<boolean> {
+  const rows = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key IN ('MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY')` as any[];
+  const config: Record<string,string> = {};
+  for (const row of rows) config[row.key] = row.encrypted ? decrypt(String(row.value)) : String(row.value);
+  const shortcode = config.MPESA_PAYBILL_SHORTCODE || '';
+  const consumerKey = config.MPESA_PAYBILL_CONSUMER_KEY || '';
+  const consumerSecret = config.MPESA_PAYBILL_CONSUMER_SECRET || '';
+  const passkey = config.MPESA_PAYBILL_PASSKEY || '';
+  if (!shortcode || !consumerKey || !consumerSecret || !passkey) return false;
+  const mode = env('DARAJA_ENV').toLowerCase();
+  const baseUrl = mode === 'sandbox' || mode === 'development' ? 'https://sandbox.safaricom.co.ke' : 'https://api.safaricom.co.ke';
+  const auth = await fetch(baseUrl + '/oauth/v1/generate?grant_type=client_credentials', {
+    headers: { Authorization: 'Basic ' + Buffer.from(consumerKey + ':' + consumerSecret).toString('base64') }
+  });
+  if (!auth.ok) return false;
+  const authData: any = await auth.json();
+  if (!authData.access_token) return false;
+  const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0,14);
+  const password = Buffer.from(shortcode + passkey + timestamp).toString('base64');
+  const response = await fetch(baseUrl + '/mpesa/stkpushquery/v1/query', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + authData.access_token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ BusinessShortCode: shortcode, Password: password, Timestamp: timestamp, CheckoutRequestID: checkoutId })
+  });
+  if (!response.ok) return false;
+  const result: any = await response.json();
+  // Only a provider query result code of zero is treated as completed payment.
+  return String(result.ResultCode) === '0';
+}
+
 async function sendMerchantSms(to: string, message: string) {
   const apiToken = env('SMS_OTS_API_TOKEN');
   const senderId = env('SMS_OTS_SENDER_ID');
@@ -97,6 +127,13 @@ export default async function handler(req: any, res: any) {
       await sql`UPDATE public.sales SET status=CASE WHEN status='completed' THEN status ELSE 'pending_verification' END, result_desc='Callback amount or payer phone did not match the order; manual reconciliation required', updated_at=NOW() WHERE id::text=${String(sale.id)} AND status<>'completed'`;
       console.error('Daraja callback order mismatch', { saleId: sale.id, checkoutId });
       return res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted for reconciliation' });
+    }
+
+    // Callback payloads are not trusted on their own: query Daraja server-to-server.
+    const providerVerified = await verifyDarajaPayment(sql, checkoutId);
+    if (!providerVerified) {
+      await sql`UPDATE public.sales SET status=CASE WHEN status='completed' THEN status ELSE 'pending_verification' END, result_desc='Daraja STK query has not confirmed completion; payment held for reconciliation', updated_at=NOW() WHERE id::text=${String(sale.id)} AND status<>'completed'`;
+      return res.status(200).json({ ResultCode: 0, ResultDesc: 'Accepted for provider verification' });
     }
 
     const settings = await sql`SELECT key,value,encrypted FROM public.admin_settings WHERE key='MERCHANT_NOTIFICATION_PHONE' LIMIT 1` as any[];
