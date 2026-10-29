@@ -76,7 +76,7 @@ export default async function handler(req: any, res: any) {
   if (missing.length) return json(res, 503, { error: 'Payment service is not fully configured. No payment was initiated.', missingConfiguration: missing });
   if (!/^https:\/\//i.test(callbackUrl)) return json(res, 503, { error: 'A public HTTPS Daraja callback URL is required.' });
   if (!['CustomerBuyGoodsOnline', 'CustomerPayBillOnline'].includes(accountType)) return json(res, 503, { error: 'Select CustomerBuyGoodsOnline or CustomerPayBillOnline in Admin → API credentials.' });
-  if (!/^\\d{5,7}$/.test(shortcode) || !/^\\d{5,7}$/.test(partyB)) return json(res, 503, { error: 'The configured merchant shortcode or Party B is invalid.' });
+  if (!/^\d{5,7}$/.test(shortcode) || !/^\d{5,7}$/.test(partyB)) return json(res, 503, { error: 'The configured merchant shortcode or Party B is invalid.' });
   if (!['production', 'live', 'sandbox', 'development'].includes(darajaEnv)) return json(res, 503, { error: 'Invalid Daraja environment setting.' });
 
   const customerPhone = phoneNumber(phone);
