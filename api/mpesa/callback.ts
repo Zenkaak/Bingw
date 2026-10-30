@@ -25,9 +25,10 @@ async function verifyDarajaPayment(sql: any, checkoutId: string, accountType: st
   }
   const isPayBill = accountType === 'CustomerPayBillOnline';
   const shortcode = (isPayBill ? config.MPESA_PAYBILL_SHORTCODE || env('MPESA_PAYBILL_SHORTCODE') || env('MPESA_SHORTCODE') : config.MPESA_SHORTCODE || env('MPESA_SHORTCODE')) || '';
-  const consumerKey = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') : '') || env('MPESA_CONSUMER_KEY') || (isPayBill ? config.MPESA_PAYBILL_CONSUMER_KEY : '') || config.MPESA_CONSUMER_KEY;
-  const consumerSecret = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') : '') || env('MPESA_CONSUMER_SECRET') || (isPayBill ? config.MPESA_PAYBILL_CONSUMER_SECRET : '') || config.MPESA_CONSUMER_SECRET;
-  const passkey = (isPayBill ? env('MPESA_PAYBILL_PASSKEY') : '') || env('MPESA_PASSKEY') || (isPayBill ? config.MPESA_PAYBILL_PASSKEY : '') || config.MPESA_PASSKEY;
+  // Match checkout credential precedence: account-specific credentials must win over generic fallbacks.
+  const consumerKey = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_KEY') || config.MPESA_PAYBILL_CONSUMER_KEY : env('MPESA_CONSUMER_KEY') || config.MPESA_CONSUMER_KEY) || env('MPESA_CONSUMER_KEY') || config.MPESA_CONSUMER_KEY;
+  const consumerSecret = (isPayBill ? env('MPESA_PAYBILL_CONSUMER_SECRET') || config.MPESA_PAYBILL_CONSUMER_SECRET : env('MPESA_CONSUMER_SECRET') || config.MPESA_CONSUMER_SECRET) || env('MPESA_CONSUMER_SECRET') || config.MPESA_CONSUMER_SECRET;
+  const passkey = (isPayBill ? env('MPESA_PAYBILL_PASSKEY') || config.MPESA_PAYBILL_PASSKEY : env('MPESA_PASSKEY') || config.MPESA_PASSKEY) || env('MPESA_PASSKEY') || config.MPESA_PASSKEY;
   if (!shortcode || !consumerKey || !consumerSecret || !passkey) return false;
   const mode = (env('DARAJA_ENV') || env('MPESA_PAYBILL_ENV') || 'production').toLowerCase();
   const baseUrl = mode === 'sandbox' || mode === 'development' ? 'https://sandbox.safaricom.co.ke' : 'https://api.safaricom.co.ke';
@@ -84,7 +85,16 @@ export default async function handler(req: any, res: any) {
   if (!dbUrl) return res.status(503).json({ ResultCode: 1, ResultDesc: 'Database unavailable' });
 
   try {
-    const body = req.body || {};
+    // Vercel normally supplies parsed JSON; tolerate raw JSON strings/Buffers too.
+    let body: any = req.body || {};
+    if (Buffer.isBuffer(body)) body = body.toString('utf8');
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); }
+      catch {
+        console.warn('Received non-JSON Daraja callback body');
+        return res.status(400).json({ ResultCode: 1, ResultDesc: 'Invalid callback payload' });
+      }
+    }
     const callback = body.Body?.stkCallback || body.body?.stkCallback;
     const checkoutId = callback?.CheckoutRequestID;
     const resultCode = Number(callback?.ResultCode);
