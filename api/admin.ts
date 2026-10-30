@@ -49,6 +49,39 @@ export default async function handler(req: any, res: any) {
   try {
     const sql = db(); await setup(sql);
     const body = req.body || {}; const action = String(req.query?.action || body.action || '');
+    if (action === 'reset-request' && req.method === 'POST') {
+      const rows=await sql`SELECT value FROM public.admin_settings WHERE key='ADMIN_RECOVERY_PHONE' LIMIT 1`;
+      const rawPhone=String(rows[0]?.value||'').replace(/[\\s+()-]/g,'');
+      const recipient=/^0[17]\\d{8}$/.test(rawPhone)?'254'+rawPhone.slice(1):/^254[17]\\d{8}$/.test(rawPhone)?rawPhone:'';
+      if(recipient){
+        const apiToken=env('SMS_OTS_API_TOKEN')||env('OTS_API_TOKEN'),senderId=env('SMS_OTS_SENDER_ID')||env('SENDER_ID');
+        if(apiToken&&senderId){
+          const otp=String(crypto.randomInt(0,1000000)).padStart(6,'0');
+          await sql`CREATE TABLE IF NOT EXISTS public.admin_password_resets (id text PRIMARY KEY,otp_hash text NOT NULL,expires_at timestamptz NOT NULL,attempts integer NOT NULL DEFAULT 0,used_at timestamptz,created_at timestamptz NOT NULL DEFAULT now())`;
+          await sql`INSERT INTO public.admin_password_resets (id,otp_hash,expires_at) VALUES ('primary',${hash(otp)},now()+interval '10 minutes') ON CONFLICT (id) DO UPDATE SET otp_hash=EXCLUDED.otp_hash,expires_at=EXCLUDED.expires_at,attempts=0,used_at=NULL,created_at=now()`;
+          const sms=await fetch('https://sms.ots.co.ke/api/v3/sms/send',{method:'POST',headers:{Authorization:'Bearer '+apiToken,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify({recipient:'+'+recipient,sender_id:senderId,type:'plain',message:'BLACKHOLE admin password reset code: '+otp+'. Expires in 10 minutes. Do not share this code.'})});
+          const raw=await sms.text();let result:any;try{result=JSON.parse(raw)}catch{result=null}
+          if(!sms.ok||!result||result.status===false||result.success===false||result.error) console.error('Admin recovery SMS was not accepted',JSON.stringify({httpStatus:sms.status}));
+        }
+      }
+      return send(res,200,{ok:true,message:'If admin recovery is configured, a reset code has been sent to the saved admin phone number.'});
+    }
+    if(action==='reset-password'&&req.method==='POST'){
+      const otp=String(body.code||'').trim(),next=String(body.newPassword||'');
+      if(!/^\\d{6}$/.test(otp))return send(res,400,{error:'Enter the 6-digit code.'});
+      if(next.length<10||!/[A-Za-z]/.test(next)||! /\\d/.test(next))return send(res,400,{error:'Use at least 10 characters with letters and numbers.'});
+      await sql`CREATE TABLE IF NOT EXISTS public.admin_password_resets (id text PRIMARY KEY,otp_hash text NOT NULL,expires_at timestamptz NOT NULL,attempts integer NOT NULL DEFAULT 0,used_at timestamptz,created_at timestamptz NOT NULL DEFAULT now())`;
+      const rows=await sql`SELECT otp_hash,expires_at,attempts,used_at FROM public.admin_password_resets WHERE id='primary' LIMIT 1`,reset=rows[0];
+      if(!reset||reset.used_at||new Date(reset.expires_at).getTime()<Date.now()||Number(reset.attempts)>=5||!safeEqual(hash(otp),reset.otp_hash)){
+        if(reset&&!reset.used_at)await sql`UPDATE public.admin_password_resets SET attempts=attempts+1 WHERE id='primary'`;
+        return send(res,400,{error:'The code is invalid or expired. Request a new code and try again.'});
+      }
+      const salt=crypto.randomBytes(16).toString('hex');
+      await sql`UPDATE public.admin_users SET password_hash=${passwordHash(next,salt)},password_salt=${salt},must_change_password=false,updated_at=now() WHERE id='primary'`;
+      await sql`UPDATE public.admin_password_resets SET used_at=now() WHERE id='primary'`;
+      await sql`DELETE FROM public.admin_sessions WHERE admin_id='primary'`;
+      return send(res,200,{ok:true,message:'Password reset successfully. Sign in with your new password.'});
+    }
     if (action === 'login' && req.method === 'POST') {
       const username = String(body.username || 'admin').trim();
       const password = String(body.password || '');
@@ -115,7 +148,7 @@ export default async function handler(req: any, res: any) {
       return send(res,200,{settings:rows.map((r:any)=>({key:r.key,configured:true,updated_at:r.updated_at})),accountType});
     }
     if (action === 'settings' && req.method === 'POST') {
-      const allowed = ['BUSINESS_NAME','DARAJA_ACCOUNT_TYPE','MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY','MERCHANT_NOTIFICATION_PHONE','MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B','MPESA_PAYBILL_ACCOUNT_REFERENCE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY'];
+      const allowed = ['BUSINESS_NAME','DARAJA_ACCOUNT_TYPE','MPESA_SHORTCODE','PARTY_B','MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY','MERCHANT_NOTIFICATION_PHONE','ADMIN_RECOVERY_PHONE','MPESA_PAYBILL_SHORTCODE','MPESA_PAYBILL_PARTY_B','MPESA_PAYBILL_ACCOUNT_REFERENCE','MPESA_PAYBILL_CONSUMER_KEY','MPESA_PAYBILL_CONSUMER_SECRET','MPESA_PAYBILL_PASSKEY'];
       const values=body.values || {};
       for (const key of allowed) {
         if (values[key] === undefined || values[key] === '') continue;
