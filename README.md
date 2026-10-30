@@ -17,3 +17,7 @@ Fresh codebase for the Bingwa Sokoni offers catalog.
 5. Verify the production deployment before enabling real-money payments.
 
 **Current status:** Initial repository setup. Production payment processing is not yet ready.
+
+## Production callback deployment note
+
+The production Daraja callback endpoint is configured through the Vercel environment variable `DARAJA_CALLBACK_URL`. Keep its value aligned with the active production domain and redeploy after changing it.
