@@ -58,6 +58,8 @@ export default async function handler(req: any, res: any) {
         if(apiToken&&senderId){
           const otp=String(crypto.randomInt(0,1000000)).padStart(6,'0');
           await sql`CREATE TABLE IF NOT EXISTS public.admin_password_resets (id text PRIMARY KEY,otp_hash text NOT NULL,expires_at timestamptz NOT NULL,attempts integer NOT NULL DEFAULT 0,used_at timestamptz,created_at timestamptz NOT NULL DEFAULT now())`;
+          const recent=await sql`SELECT created_at FROM public.admin_password_resets WHERE id='primary' AND created_at > now()-interval '60 seconds' AND used_at IS NULL LIMIT 1`;
+          if(recent.length) return send(res,200,{ok:true,message:'If admin recovery is configured, a reset code has been sent to the saved admin phone number.'});
           await sql`INSERT INTO public.admin_password_resets (id,otp_hash,expires_at) VALUES ('primary',${hash(otp)},now()+interval '10 minutes') ON CONFLICT (id) DO UPDATE SET otp_hash=EXCLUDED.otp_hash,expires_at=EXCLUDED.expires_at,attempts=0,used_at=NULL,created_at=now()`;
           const sms=await fetch('https://sms.ots.co.ke/api/v3/sms/send',{method:'POST',headers:{Authorization:'Bearer '+apiToken,Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify({recipient:'+'+recipient,sender_id:senderId,type:'plain',message:'BLACKHOLE admin password reset code: '+otp+'. Expires in 10 minutes. Do not share this code.'})});
           const raw=await sms.text();let result:any;try{result=JSON.parse(raw)}catch{result=null}
